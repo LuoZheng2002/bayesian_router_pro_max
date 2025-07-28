@@ -28,6 +28,10 @@ pub fn bayesian_backtrack(
     trace_cache: &mut TraceCache,
     display_injection: &mut DisplayInjection,
 ) -> Result<PcbSolution, String> {
+    if display_injection.stop_requested.load(Ordering::Relaxed) {
+        println!("Stop requested, not running Bayesian backtrack");
+        return Err("Stop requested".to_string());
+    }
     let connections = pcb_problem.nets.iter()
         .flat_map(|(_, net_info)| net_info.connections.keys().cloned())
         .collect::<Vec<_>>();
@@ -70,8 +74,8 @@ pub fn bayesian_backtrack(
         for (_, net_info) in problem.nets.iter() {
             net_name_to_color.insert(net_info.net_name.clone(), net_info.color);
             for pad in net_info.pads.values(){
-                let pad_renderables = pad.to_renderables(net_info.color.to_float4(0.5));
-                let pad_clearance_renderables = pad.to_clearance_renderables(net_info.color.to_float4(1.0));
+                let pad_renderables = pad.to_renderables(net_info.color.to_float4(1.0));
+                let pad_clearance_renderables = pad.to_clearance_renderables(net_info.color.to_float4(0.5));
                 pad_shape_renderables.extend(pad_renderables);
                 pad_shape_renderables.extend(pad_clearance_renderables);
             }
@@ -101,10 +105,16 @@ pub fn bayesian_backtrack(
     fn display_when_necessary(
         node: &BacktrackNode,
         pcb_problem: &PcbProblem,
+        command_flag: CommandFlag,
         display_injection: &mut DisplayInjection,
     ) {
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("Stop requested, not displaying node");
+            return;
+        }
+        println!("Displaying node in bayesian backtrack");
         let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
-        let task_command_level = CommandFlag::ProbaModelResult.get_level();
+        let task_command_level = command_flag.get_level();
         if target_command_level <= task_command_level {
             let render_model = node_to_pcb_render_model(pcb_problem, node);
             while !(display_injection.can_submit_render_model)() {
@@ -122,17 +132,22 @@ pub fn bayesian_backtrack(
     }
 
     let first_node =
-        BacktrackNode::from_fixed_traces(pcb_problem, &HashMap::new(), Vec::new(), trace_cache, display_injection);
+        BacktrackNode::from_fixed_traces(pcb_problem, &HashMap::new(), Vec::new(), trace_cache, display_injection)?;
     // assume the first node has trace candidates
     node_stack.push(first_node);
 
     let mut heuristics: Option<Vec<ConnectionID>> = None;
 
     while node_stack.len() > 0 {
-        print_current_stack(&node_stack);
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("Stop requested, exiting Bayesian backtrack");
+            return Err("Stop requested".to_string());
+        }
+        // print_current_stack(&node_stack);
         display_when_necessary(
             node_stack.last().unwrap(),
             pcb_problem,
+            CommandFlag::ProbaModelResult,
             display_injection,
         );
         let top_node = node_stack.last_mut().unwrap();
@@ -147,13 +162,14 @@ pub fn bayesian_backtrack(
             };
             println!("Successfully found a solution with sample count {}", shared::hyperparameters::SAMPLE_CNT.load(Ordering::SeqCst));
             SAMPLE_CNT.store(0, Ordering::SeqCst);
-           
-            heuristics = Some(top_node.fix_sequence.clone());
-            break; // break the loop to return the solution
-            // return Ok(solution);
+
+            display_when_necessary(top_node, pcb_problem, CommandFlag::Auto, display_injection);
+            // heuristics = Some(top_node.fix_sequence.clone());
+            // break; // break the loop to return the solution
+            return Ok(solution);
         }
         let display_and_block_closure = |node: &BacktrackNode| {
-            display_when_necessary(node, pcb_problem, display_injection);
+            display_when_necessary(node, pcb_problem, CommandFlag::ProbaModelResult, display_injection);
         };
         let new_node =
             top_node.try_fix_top_k_ranked_trace(display_and_block_closure, NUM_TOP_RANKED_TO_TRY);

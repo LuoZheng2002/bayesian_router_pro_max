@@ -14,6 +14,7 @@ pub fn submit_render_model(pcb_render_model: PcbRenderModel){
         app_handle.clone().unwrap()
     };
     app_handle.emit("submit-pcb-render-model", pcb_render_model).unwrap();
+    SUBMIT_RENDER_MODEL_CV.notify_all();
     println!("Submitted PCB render model");
 }
 
@@ -22,6 +23,8 @@ pub fn can_submit_render_model() -> bool {
 }
 
 pub fn block_until_signal(){
+    println!("Blocking until signal");
     let guard = COMMAND_MUTEX.lock().unwrap();
     let _unused = COMMAND_CV.wait(guard).unwrap();
+    println!("Continuing");
 }

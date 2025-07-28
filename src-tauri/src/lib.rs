@@ -32,7 +32,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             greet,
-            start_pause_click,
+            start_pause,
             step_in,
             step_out,
             step_over,

@@ -95,7 +95,7 @@ pub fn binary_approach_to_obstacles(
     trace_clearance: f32,
     layer: usize,
 )->FixedPoint{
-    println!("Called binary approach to obstacles");
+    // println!("Called binary approach to obstacles");
     assert!(start_length < end_length, "start_length should be less than end_length");
     let mut lower_bound = start_length;
     let mut upper_bound = end_length;
@@ -177,7 +177,7 @@ pub fn try_parallel_shift(
             continue; // not a valid parallel shift
         }
         assert!(dir1 != dir2, "dir1 and dir2 should not be the same, dir1: {:?}, dir2: {:?}", dir1, dir2);
-        println!("Found a parallel shift");
+        // println!("Found a parallel shift");
         let new_point1 = FixedVec2 {
             x: p0.x + p2.x - p1.x,
             y: p0.y + p2.y - p1.y,
@@ -216,7 +216,7 @@ pub fn try_parallel_shift(
             my_layer,
         ) {
             // If no collision is detected, we can safely update the positions
-            println!("Successfully shifted left");
+            // println!("Successfully shifted left");
             // optimized[i + 1].position = new_point_left1;
             optimized[i + 2].position = new_point_left2;            
             optimized.remove(i + 1);
@@ -236,13 +236,13 @@ pub fn try_parallel_shift(
             my_layer,
         ) {
             // If no collision is detected, we can safely update the positions
-            println!("Successfully shifted right");
+            // println!("Successfully shifted right");
             optimized[i + 1].position = new_point_right1;
             // optimized[i + 2].position = new_point_right2;
             optimized.remove(i + 2);
             return true;
         }
-        println!("Failed to shift left or right, trying to stick to obstacles");
+        // println!("Failed to shift left or right, trying to stick to obstacles");
         let length_to_trace = |length: FixedPoint| {
             let start_position = p1 - dir1.to_fixed_vec2(length);
             let end_position = p2 - dir1.to_fixed_vec2(length);
@@ -252,13 +252,13 @@ pub fn try_parallel_shift(
                 (end_position, p3),
             ]
         };
-        println!("Called binary approach to obstacles in try_parallel_shift");
+        // println!("Called binary approach to obstacles in try_parallel_shift");
         let length = binary_approach_to_obstacles(&length_to_trace, FixedPoint::ZERO, length_0_1, check_collision_for_trace, trace_width, trace_clearance, my_layer);
         if length == FixedPoint::ZERO {
-            println!("In trying to stick to obstacles, length = 0, fail");
+            // println!("In trying to stick to obstacles, length = 0, fail");
             continue; // no valid length found
         }
-        println!("Successfully sticked to an obstacle");
+        // println!("Successfully sticked to an obstacle");
         optimized[i + 1].position = p1 - dir1.to_fixed_vec2(length);
         optimized[i + 2].position = p2 - dir1.to_fixed_vec2(length);
         return true;       
@@ -326,7 +326,7 @@ pub fn try_convex_and_merge(
             Some(dir) => dir,
             None => continue, // not a valid direction
         };
-        println!("dir1: {:?}, dir2: {:?}, dir3: {:?}", dir1, dir2, dir3);
+        // println!("dir1: {:?}, dir2: {:?}, dir3: {:?}", dir1, dir2, dir3);
         let dir2 = match dir2 {
             Some(dir) => dir,
             None => if dir1.is_sharp_angle(dir3){
@@ -334,29 +334,29 @@ pub fn try_convex_and_merge(
             }else if dir1.is_right_angle(dir3){
                 Direction::between_right_angle(dir1, dir3)
             }else{
-                println!("dir2 is None, but dir 1 and dir 3 do not form sharp or right angle");
+                // println!("dir2 is None, but dir 1 and dir 3 do not form sharp or right angle");
                 continue;
             }
         };
         let left_spin = dir2.left_45_90_135(dir1) && dir3.left_45_90_135(dir2);
         let right_spin = dir2.right_45_90_135(dir1) && dir3.right_45_90_135(dir2);
         if !left_spin && !right_spin {
-            println!("neither left spin or right spin, skipping");
+            // println!("neither left spin or right spin, skipping");
             continue; // not a convex corner
         }
-        println!("found left spin or right spin");
+        // println!("found left spin or right spin");
         let line1 = Line::new(p0, dir1.to_int_vec2());
         let line2 = Line::new(p1, dir2.to_int_vec2());
         let line3 = Line::new(p2, dir3.to_int_vec2());
         let line2_normal_dir = if left_spin{
-            println!("Found a left spin, anchor indices: {}, {}, {}, {}", i, i + 1, i + 2, i + 3);
+           //  println!("Found a left spin, anchor indices: {}, {}, {}, {}", i, i + 1, i + 2, i + 3);
             dir2.left_90_dir()
         }else{
             assert!(right_spin);
-            println!("Found a right spin, anchor indices: {}, {}, {}, {}", i, i + 1, i + 2, i + 3);
+            // println!("Found a right spin, anchor indices: {}, {}, {}, {}", i, i + 1, i + 2, i + 3);
             dir2.right_90_dir()
         };
-        println!("line 2 normal direction: {:?}", line2_normal_dir);
+        // println!("line 2 normal direction: {:?}", line2_normal_dir);
         let line2_normal_vec = line2_normal_dir.to_fixed_vec2(FixedPoint::ONE);
         let relative_distance_1 = {
             let dx_0_1 = (p0.x - p1.x) * line2_normal_vec.x;
@@ -365,7 +365,7 @@ pub fn try_convex_and_merge(
             assert!(dy_0_1 >= FixedPoint::ZERO, "dy_0_1 should be non-negative, got {}, p0.y: {}, p1.y: {}, vec.y: {}", dy_0_1, p0.y, p1.y, line2_normal_vec.y);
             FixedPoint::max(dx_0_1, dy_0_1)
         };
-        println!("Relative distance 1: {}", relative_distance_1);
+        // println!("Relative distance 1: {}", relative_distance_1);
         let relative_distance_2 = {
             let dx_3_2 = (p3.x - p2.x) * line2_normal_vec.x;
             assert!(dx_3_2 >= FixedPoint::ZERO, "dx_3_2 should be non-negative");
@@ -373,7 +373,7 @@ pub fn try_convex_and_merge(
             assert!(dy_3_2 >= FixedPoint::ZERO, "dy_3_2 should be non-negative");
             FixedPoint::max(dx_3_2, dy_3_2)
         };
-        println!("Relative distance 2: {}", relative_distance_2);
+        // println!("Relative distance 2: {}", relative_distance_2);
         let (new_point1, new_point2) = if relative_distance_1 <= relative_distance_2{
             let mut new_parallel_line = line2.clone();
             let offset = if line2_normal_dir.is_diagonal(){
@@ -401,7 +401,7 @@ pub fn try_convex_and_merge(
         };
         if new_point1 == p1{
             assert!(new_point2 == p2, "new_point1 is p1, but new_point2 is not p2, new_point2: {:?}", new_point2);
-            println!("new_point1 is p1, no need to change, skipping");
+            // println!("new_point1 is p1, no need to change, skipping");
             continue;
         }
         if new_point1 != new_point2 && !check_collision_for_trace(
@@ -422,10 +422,10 @@ pub fn try_convex_and_merge(
                 optimized.remove(i + 2);
                 optimized.remove(i + 1);                
             }            
-            println!("Successfully convex and merged");
+            // println!("Successfully convex and merged");
             return true;
         }else if new_point1 == new_point2 {
-            println!("new_point1 == new_point2, no collision, but points are the same, skipping");
+            // println!("new_point1 == new_point2, no collision, but points are the same, skipping");
             continue; // no valid length found
         }
         let length_to_trace = |length: FixedPoint| {
@@ -447,7 +447,7 @@ pub fn try_convex_and_merge(
             my_layer,
         );
         if length == FixedPoint::ZERO {
-            println!("Failed to binary approach to obstacles, length = 0");
+            // println!("Failed to binary approach to obstacles, length = 0");
             continue; // no valid length found
         }
         let mut new_parallel_line = line2.clone();
@@ -457,7 +457,7 @@ pub fn try_convex_and_merge(
         let new_point2 = new_parallel_line.intersection(&line3);
         optimized[i + 1].position = new_point1;
         optimized[i + 2].position = new_point2;
-        println!("Successfully convex and merged");
+        // println!("Successfully convex and merged");
         return true;
         // let dir4 = if i == optimized.len() - 4 {None} else {Some(Direction::from_points(p3, optimized[i + 4].position).unwrap())};
     }
@@ -538,19 +538,19 @@ pub fn try_merge_path(optimized: &mut Vec<TraceAnchor>)->bool{
     false
 }
 
-pub fn print_directions(optimized: &Vec<TraceAnchor>) {
-    print!("Updated directions: ");
-    for i in 0..i64::max(optimized.len() as i64 - 1, 0) as usize {
-        let p1 = optimized[i].position;
-        let p2 = optimized[i + 1].position;
-        let dir_str = match Direction::from_points(p1, p2).unwrap(){
-            Some(dir) => format!("{:?}", dir),
-            None => "None".to_string(),
-        };
-        print!("{}", dir_str);
-    }
-    println!();
-}
+// pub fn print_directions(optimized: &Vec<TraceAnchor>) {
+//     print!("Updated directions: ");
+//     for i in 0..i64::max(optimized.len() as i64 - 1, 0) as usize {
+//         let p1 = optimized[i].position;
+//         let p2 = optimized[i + 1].position;
+//         let dir_str = match Direction::from_points(p1, p2).unwrap(){
+//             Some(dir) => format!("{:?}", dir),
+//             None => "None".to_string(),
+//         };
+//         print!("{}", dir_str);
+//     }
+//     println!();
+// }
 
 pub fn optimize_path(
     trace_path: &TracePath,
@@ -565,11 +565,11 @@ pub fn optimize_path(
     loop{
         let success = try_merge_path(&mut optimized);
         if success{
-            println!("Merged path successfully");
-            print_directions(&optimized);
+            // println!("Merged path successfully");
+            // print_directions(&optimized);
         }
         else{
-            println!("Failed to merge path");
+            // println!("Failed to merge path");
             break;
         }
         // return (TracePath::from_anchors(TraceAnchors(optimized), trace_width, trace_clearance, via_diameter), true);
@@ -583,12 +583,12 @@ pub fn optimize_path(
                 trace_clearance,
             );
             if success{
-                println!("Parallel shift successful");
-                print_directions(&optimized);
+                // println!("Parallel shift successful");
+                // print_directions(&optimized);
                 has_success = true;
             }
             else{
-                println!("Failed to parallel shift");
+                // println!("Failed to parallel shift");
                 break;
             }
             // return (TracePath::from_anchors(TraceAnchors(optimized), trace_width, trace_clearance, via_diameter), true);
@@ -600,12 +600,12 @@ pub fn optimize_path(
                 trace_clearance,
             );
             if success{
-                println!("Convex and merge successful");
-                print_directions(&optimized);
+                // println!("Convex and merge successful");
+                // print_directions(&optimized);
                 has_success = true;
             }
             else{
-                println!("Failed to convex and merge");
+                // println!("Failed to convex and merge");
                 break;
             }
             // return (TracePath::from_anchors(TraceAnchors(optimized), trace_width, trace_clearance, via_diameter), true);
@@ -613,23 +613,23 @@ pub fn optimize_path(
         loop{
             let success = try_cut_right_or_sharp_angle(&mut optimized);
             if success{
-                println!("Cut right or sharp angle successful");
+                // println!("Cut right or sharp angle successful");
                 let convex_success = try_convex_and_merge(&mut optimized, check_collision_for_trace, trace_width, trace_clearance);
-                println!("Tried to convex and merge after cutting right or sharp angle");
-                print_directions(&optimized);
+                // println!("Tried to convex and merge after cutting right or sharp angle");
+                // print_directions(&optimized);
                 if !convex_success{
                     continue;
                 }
                 has_success = true;
             }
             else{
-                println!("Failed to cut right or sharp angle");
+                // println!("Failed to cut right or sharp angle");
                 break;
             }        
             //  return (TracePath::from_anchors(TraceAnchors(optimized), trace_width, trace_clearance, via_diameter), true);   
         }    
         if !has_success {
-            println!("No more optimizations possible, breaking the outer loop");
+            // println!("No more optimizations possible, breaking the outer loop");
             break; // no more optimizations possible
         }
     }
@@ -653,12 +653,12 @@ pub fn optimize_path(
     loop{
         let success = try_merge_path(&mut optimized);
         if success{
-            println!("Merged path successfully");
-            print_directions(&optimized);
+            // println!("Merged path successfully");
+            // print_directions(&optimized);
             // has_success = true;
         }
         else{
-            println!("Failed to merge path");
+            // println!("Failed to merge path");
             break;
         }
         // return (TracePath::from_anchors(TraceAnchors(optimized), trace_width, trace_clearance, via_diameter), true);

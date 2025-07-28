@@ -34,14 +34,14 @@ impl AStarCheck{
         for (layer, obstacle_colliders) in &*self.obstacle_colliders{
             let trace_clearance_colliders = trace_clearance_colliders.get(&layer).unwrap();
             if obstacle_colliders.collides_with_set(trace_clearance_colliders.iter()){
-                println!("Collision between obstacle colliders and trace clearance colliders on layer {}", layer);
+                // println!("Collision between obstacle colliders and trace clearance colliders on layer {}", layer);
                 return false; // Collision with obstacle colliders
             }
         }
         for (layer, obstacle_clearance_colliders) in &*self.obstacle_clearance_colliders {
             let trace_colliders = trace_colliders.get(&layer).unwrap();
             if obstacle_clearance_colliders.collides_with_set(trace_colliders.iter()) {
-                println!("Collision between obstacle clearance colliders and trace colliders on layer {}", layer);
+                // println!("Collision between obstacle clearance colliders and trace colliders on layer {}", layer);
                 return false; // Collision with obstacle clearance colliders
             }
         }

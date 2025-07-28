@@ -175,6 +175,10 @@ impl TransparentPipeline {
             //needs a texture bind group from the model
             render_pass.set_bind_group(0, camera_bind_group, &[]);
             for (mesh, instances) in batch.0.iter() {
+                // if instances.len() > 10{
+                //     println!("Too many instances for mesh, skipping");
+                //     continue;
+                // }
                 render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                 render_pass
                     .set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

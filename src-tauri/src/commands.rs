@@ -8,17 +8,6 @@ use crate::global::{APP_HANDLE, COMMAND_CV};
 
 
 
-
-
-
-
-#[tauri::command]
-pub fn start_pause_click() -> MyResult<(), String> {
-    // This function can be used to toggle the start/pause state
-    // For now, it just returns Ok
-    MyResult::Ok(())
-}
-
 #[tauri::command]
 pub fn step_in()->MyResult<(), String> {
     let old_command_level = TARGET_COMMAND_LEVEL.fetch_sub(1, Ordering::SeqCst);
@@ -75,5 +64,27 @@ pub fn view_stats()->MyResult<(), String> {
 
 #[tauri::command]
 pub fn save_result()->MyResult<(), String> {
+    MyResult::Ok(())
+}
+
+#[tauri::command]
+pub fn start_pause() -> MyResult<(), String>{
+    let app_handle = {
+        let global_app_handle = APP_HANDLE.lock().unwrap();
+        global_app_handle.clone().unwrap()
+    };
+    let current_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
+    if current_command_level == 4{
+        // current is starting, so we pause
+        TARGET_COMMAND_LEVEL.store(0, Ordering::Relaxed);
+        app_handle.emit("string-event", ("start-pause", "pause")).unwrap();
+        println!("Pausing algorithm");
+    }else{
+        // current is paused, so we start
+        TARGET_COMMAND_LEVEL.store(4, Ordering::Relaxed);
+        println!("Starting algorithm");
+        app_handle.emit("string-event", ("start-pause", "start")).unwrap();
+        COMMAND_CV.notify_all();
+    }    
     MyResult::Ok(())
 }

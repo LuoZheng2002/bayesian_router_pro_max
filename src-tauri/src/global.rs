@@ -10,9 +10,9 @@ pub static CAN_SUBMIT_RENDER_MODEL: AtomicBool = AtomicBool::new(true);
 pub static SUBMIT_RENDER_MODEL_MUTEX: Mutex<()> = Mutex::new(());
 pub static SUBMIT_RENDER_MODEL_CV: Condvar = Condvar::new();
 
-pub static USE_BAYESIAN: AtomicBool = AtomicBool::new(false);
+pub static USE_BAYESIAN: AtomicBool = AtomicBool::new(true);
 
-pub static SUBMISSION_INTERVAL_MILLIS: AtomicUsize = AtomicUsize::new(20);
+pub static SUBMISSION_INTERVAL_MILLIS: AtomicUsize = AtomicUsize::new(300);
 pub static SES_STRING: Mutex<Option<String>> = Mutex::new(None);
 
 lazy_static!{

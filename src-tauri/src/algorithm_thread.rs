@@ -1,27 +1,39 @@
-use std::{path::PathBuf, sync::{atomic::Ordering, Arc, Mutex}, thread::JoinHandle};
+use std::{path::PathBuf, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, thread::JoinHandle};
 
 use parser::{parse_end_to_end::{parse_start_to_dsn_struct, parse_struct_to_end}, write_ses::write_ses_to_string};
 use router::{display_injection::DisplayInjection, pcb_problem_solve::solve_pcb_problem};
 use shared::pcb_render_model::PcbRenderModel;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use crate::{global::{SES_STRING, SUBMIT_RENDER_MODEL_CV, SUBMIT_RENDER_MODEL_MUTEX}, submit_pcb_render_model::{self, block_until_signal, can_submit_render_model, submit_render_model}};
 
 
 
 pub struct AlgorithmThreadHandle{
-    pub stop_requested: Arc<Mutex<bool>>,
+    pub stop_requested: Arc<AtomicBool>,
     pub join_handle: Option<JoinHandle<()>>,
     pub file_path: PathBuf,
 }
 
 
 
+pub fn cleanup(){
+    let app_handle = {
+        let app_handle = crate::global::APP_HANDLE.lock().unwrap();
+        app_handle.clone().unwrap()
+    };
+    app_handle.emit("string-event", ("enable".to_string(), "save-result".to_string())).unwrap();
+    app_handle.emit("string-event", ("enable".to_string(), "view-stats".to_string())).unwrap();
+    app_handle.emit("string-event", ("start-pause".to_string(), "pause".to_string())).unwrap();
+    app_handle.emit("string-event", ("disable".to_string(), "step-in".to_string())).unwrap();
+    app_handle.emit("string-event", ("disable".to_string(), "step-out".to_string())).unwrap();
+    app_handle.emit("string-event", ("disable".to_string(), "step-over".to_string())).unwrap();
+}
 
 pub fn algorithm_thread(
     file_path: PathBuf,
     file_content: String, 
-    stop_requested: Arc<Mutex<bool>>,
+    stop_requested: Arc<AtomicBool>,
 ) {
     println!("Algorithm thread started with file: {}", file_path.to_string_lossy());
     let dsn_struct = match parse_start_to_dsn_struct(file_content.clone()) {
@@ -59,10 +71,9 @@ pub fn algorithm_thread(
         can_submit_render_model: Box::new(can_submit_render_model_closure),
         block_until_signal: Box::new(block_until_signal_closure),
         submit_render_model: Box::new(submit_pcb_render_model_closure),
+        stop_requested: stop_requested.clone(),
     };
     println!("Ready to solve PCB problem");
-    block_until_signal();
-    // std::thread::sleep(std::time::Duration::from_millis(100)); // Give time for the UI to update
 
     let use_bayesian = crate::global::USE_BAYESIAN.load(Ordering::Relaxed); 
     let result = solve_pcb_problem(&pcb_problem, use_bayesian, &mut display_injection);
@@ -74,6 +85,7 @@ pub fn algorithm_thread(
         Err(e) => {
             println!("Failed to solve PCB problem: {}", e);
             println!("Exiting algorithm thread due to solve error");
+            cleanup();
             return;
         }
     };
@@ -85,6 +97,7 @@ pub fn algorithm_thread(
         Err(e) => {
             println!("Failed to write SES file: {}", e);
             println!("Exiting algorithm thread due to write error");
+            cleanup();
             return;
         }
     };
@@ -93,4 +106,5 @@ pub fn algorithm_thread(
         *ses_string_lock = Some(ses_string);
     }
     println!("Auto routing work completed, exiting");
+    cleanup();
 }

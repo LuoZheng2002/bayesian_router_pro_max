@@ -82,11 +82,17 @@ fn node_to_pcb_render_model(problem: &PcbProblem, node: &NaiveBacktrackNode) -> 
 fn display_when_necessary(
     node: &NaiveBacktrackNode,
     pcb_problem: &PcbProblem,
+    command_flag: CommandFlag,
     display_injection: &mut DisplayInjection,
 ) {
+    if display_injection.stop_requested.load(Ordering::Relaxed) {
+        println!("Stop requested, not displaying node");
+        return;
+    }
     // println!("In naive backtrack's display_when_necessary");
+    println!("Displaying node in naive backtrack");
     let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
-    let task_command_level = CommandFlag::ProbaModelResult.get_level();
+    let task_command_level = command_flag.get_level();
     if target_command_level <= task_command_level {
         let render_model = node_to_pcb_render_model(pcb_problem, node);
         while !(display_injection.can_submit_render_model)() {
@@ -108,6 +114,10 @@ pub fn naive_backtrack(problem: &PcbProblem,
     heuristics: Option<Vec<ConnectionID>>,
     display_injection: &mut DisplayInjection,
 ) -> Result<PcbSolution, String> {
+    if display_injection.stop_requested.load(Ordering::Relaxed) {
+        println!("Stop requested, not running naive backtrack");
+        return Err("Stop requested".to_string());
+    }
     println!("Inside naive backtrack");
     // prepare the obstacles for the first A* run    
     let border_colliders = AStarModel::calculate_border_colliders(problem.width, problem.height, problem.center);
@@ -124,7 +134,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
         fixed_connections: HashMap::new(),
         failed_connections: Vec::new(),
     };
-    display_when_necessary(&dummy_top_node, problem, display_injection);
+    display_when_necessary(&dummy_top_node, problem, CommandFlag::ProbaModelResult, display_injection);
     let ordered_connection_vec = if let Some(heuristics) = heuristics {
         heuristics
     } else {        
@@ -207,11 +217,11 @@ pub fn naive_backtrack(problem: &PcbProblem,
                         num_layers: problem.num_layers,
                     };
                     if astar_check.check() {
-                        println!("Cache Hit!");                            
+                        // println!("Cache Hit!");                            
                         trace_path = Some(cache_trace_path.clone());
                         break; // we found a trace that satisfies the constraints, no need to generate a new one
                     }else{
-                        println!("Cache Miss!");
+                        // println!("Cache Miss!");
                     }
                 }
                 let trace_path = if let Some(trace_path) = trace_path{
@@ -301,20 +311,24 @@ pub fn naive_backtrack(problem: &PcbProblem,
     }
 
     while !backtrack_stack.is_empty() {
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("Stop requested, exiting naive backtrack");
+            return Err("Stop requested".to_string());
+        }
         // Get the top node from the stack
         
         let top_node = backtrack_stack.last_mut().unwrap();
         print_top_node(top_node);
         assert!(top_node.current_connection.is_none());
 
-        display_when_necessary(&top_node, &problem, display_injection);
+        display_when_necessary(&top_node, &problem, CommandFlag::ProbaModelResult, display_injection);
         if top_node.alternative_connections.is_empty() {
             if !top_node.failed_connections.is_empty() {
                 println!("No more alternative connections but have failed connections, fail to solve");
                 return Err("Failed to solve PCB problem: No more alternative connections but have failed connections".to_string());
             }
             // is solution
-            let fixed_connections = std::mem::take(&mut top_node.fixed_connections);
+            let fixed_connections = top_node.fixed_connections.clone();
             let fixed_traces: HashMap<ConnectionID, FixedTrace> = fixed_connections.into_iter()
                 .map(|(connection_id, fixed_trace)| {
  
@@ -325,6 +339,8 @@ pub fn naive_backtrack(problem: &PcbProblem,
                 determined_traces: fixed_traces,
                 scale_down_factor: problem.scale_down_factor,
             };
+            println!("Successfully solved PCB problem using naive backtrack");
+            display_when_necessary(&top_node, &problem, CommandFlag::Auto, display_injection);
             return Ok(pcb_solution);
         }
         // select the next connection
@@ -432,11 +448,11 @@ pub fn naive_backtrack(problem: &PcbProblem,
                 num_layers: problem.num_layers,
             };
             if astar_check.check() {
-                println!("Cache Hit!");                            
+                // println!("Cache Hit!");                            
                 trace_path = Some(cache_trace_path.clone());
                 break; // we found a trace that satisfies the constraints, no need to generate a new one
             }else{
-                println!("Cache Miss!");
+                // println!("Cache Miss!");
             }
         }
         let connection = connections.get(&current_connection).unwrap();

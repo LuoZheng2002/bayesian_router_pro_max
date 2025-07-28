@@ -28,7 +28,7 @@ pub fn PcbPage() -> impl IntoView {
     //     navigate("/settings", Default::default());
     // };
 
-    let (start_pause_str, set_start_pause_str) = signal("Start");
+    // let (start_pause_str, set_start_pause_str) = signal("Start");
 
     let canvas_ref: NodeRef<leptos::html::Canvas> = NodeRef::new();
 
@@ -122,6 +122,23 @@ pub fn PcbPage() -> impl IntoView {
             }
         }
     });
+
+    let on_start_pause = move |_| {
+        // app_state.increase_command_level();// to do
+        spawn_local(async move {
+            let result: MyResult<(), String> = invoke("start_pause", ()).await;
+            match result {
+                MyResult::Ok(_) => {
+                    web_sys::console::log_1(&"Start/Pause command executed successfully".into());
+                },
+                MyResult::Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to execute Start/Pause command: {}", e).into());
+                }
+            }
+        });
+    };
+
+
     let on_step_in = move |_| {
         // app_state.increase_command_level();// to do
         spawn_local(async move {
@@ -201,8 +218,8 @@ pub fn PcbPage() -> impl IntoView {
 
             // <!-- Right: Column of buttons -->
             <div class="w-48 flex flex-col items-center justify-center space-y-4 bg-gray-200 p-4">
-                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    {start_pause_str}
+                <button on:click=on_start_pause class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    {app_state3.start_pause_str}
                 </button>
                 <button on:click=on_step_in disabled=app_state3.step_in_disabled class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     "Step In"

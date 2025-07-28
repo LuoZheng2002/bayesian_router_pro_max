@@ -986,16 +986,24 @@ impl AStarModel {
         command_flag: CommandFlag,
         display_injection: &mut DisplayInjection,
     ) {
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("A* search stopped by user");
+            return;
+        }
+        // println!("Displaying A* frontier");
         let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
         let task_command_level = command_flag.get_level();
         if target_command_level <= task_command_level {
             // Target level is less than task level
+            // println!("Before blocking");
             let render_model = self.astar_to_render_model(frontier);
             while !(display_injection.can_submit_render_model)() {
                 // Wait until we can submit the render model
             }            
+            // println!("After blocking");
             (display_injection.submit_render_model)(render_model);
             (display_injection.block_until_signal)();
+            //  println!("After signal");
         } else {
             if (display_injection.can_submit_render_model)() {
                 // If we can submit the render model, do it
@@ -1103,7 +1111,10 @@ impl AStarModel {
         &self,
         display_injection: &mut DisplayInjection,
     ) -> Result<AStarResult, String> {
-        println!("Running A*");
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            return Err("A* search stopped by user".to_string());
+        }
+        // println!("Running A*");
         SAMPLE_CNT.fetch_add(1, Ordering::SeqCst);
         println!("Sample count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
         assert!(self.start.is_sum_even());
@@ -1300,9 +1311,9 @@ impl AStarModel {
                         self.end,
                         current_node.layer,
                     );
-                    println!("Successfully pushed an end node to the frontier");
+                    // println!("Successfully pushed an end node to the frontier");
                 }else{
-                    println!("Although a node is aligned with end, collision. Direction: {:?}", end_direction);
+                    // println!("Although a node is aligned with end, collision. Direction: {:?}", end_direction);
                 }
             }
 

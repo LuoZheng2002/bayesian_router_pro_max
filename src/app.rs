@@ -76,6 +76,14 @@ pub fn App() -> impl IntoView {
               web_sys::console::log_1(&"Stepping over".into());
               app_state.step_over_disabled.set(false);
             },
+            ("enable", "view-stats") =>{
+              web_sys::console::log_1(&"Viewing stats".into());
+              app_state.view_stats_disabled.set(false);
+            },            
+            ("enable", "save-result") =>{
+              web_sys::console::log_1(&"Saving result".into());
+              app_state.save_result_disabled.set(false);
+            },
             ("disable", "step-in") =>{
               web_sys::console::log_1(&"Stepping in".into());
               app_state.step_in_disabled.set(true);
@@ -87,6 +95,24 @@ pub fn App() -> impl IntoView {
             ("disable", "step-over") =>{
               web_sys::console::log_1(&"Stepping over".into());
               app_state.step_over_disabled.set(true);
+            },
+            ("disable", "view-stats") =>{
+              web_sys::console::log_1(&"Viewing stats".into());
+              app_state.view_stats_disabled.set(true);
+            },            
+            ("disable", "save-result") =>{
+              web_sys::console::log_1(&"Saving result".into());
+              app_state.save_result_disabled.set(true);
+            },
+            ("start-pause", "start") =>{
+              web_sys::console::log_1(&"Starting algorithm".into());
+              app_state.start_pause_str.set("Pause".into());
+              println!("Setting start_pause_str to Pause");
+            },
+            ("start-pause", "pause") =>{
+              web_sys::console::log_1(&"Pausing algorithm".into());
+              app_state.start_pause_str.set("Start".into());
+              println!("Setting start_pause_str to Start");
             },
             _=>{
               web_sys::console::log_1(&format!("Unknown navigation event: {}, {}", event.payload.0, event.payload.1).into());

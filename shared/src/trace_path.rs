@@ -624,7 +624,7 @@ impl TracePath {
         let score_raw = self.total_length; // placeholder for actual score calculation
         let k = f64::ln(2.0) / HALF_PROBABILITY_RAW_SCORE;
         let score = f64::exp(-k * score_raw);
-        println!("total length: {}, score: {}", self.total_length, score);
+        // println!("total length: {}, score: {}", self.total_length, score);
         assert!(
             score >= 0.0 && score <= 1.0,
             "Score must be between 0 and 1, got: {}",

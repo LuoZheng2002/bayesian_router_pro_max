@@ -1,4 +1,4 @@
-use leptos::prelude::ArcRwSignal;
+use leptos::prelude::{ArcRwSignal, RwSignal};
 use shared::pcb_render_model::PcbRenderModel;
 
 
@@ -13,6 +13,7 @@ pub struct AppState {
     pub step_over_disabled: ArcRwSignal<bool>,
     pub view_stats_disabled: ArcRwSignal<bool>,
     pub save_result_disabled: ArcRwSignal<bool>,
+    pub start_pause_str: ArcRwSignal<String>,
 }
 
 impl AppState{
@@ -25,6 +26,7 @@ impl AppState{
             step_over_disabled: ArcRwSignal::new(false),
             view_stats_disabled: ArcRwSignal::new(false),
             save_result_disabled: ArcRwSignal::new(false),
+            start_pause_str: ArcRwSignal::new("Start".into()),
         }
     }
 }

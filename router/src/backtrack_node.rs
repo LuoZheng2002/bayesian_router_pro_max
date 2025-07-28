@@ -1,7 +1,7 @@
 use std::{
     collections::{BinaryHeap, HashMap},
     rc::Rc,
-    sync::{Arc, Mutex},
+    sync::{atomic::Ordering, Arc, Mutex},
 };
 
 use ordered_float::NotNan;
@@ -149,9 +149,14 @@ impl BacktrackNode {
         fix_sequence: Vec<ConnectionID>,
         trace_cache: &mut TraceCache,
         display_injection: &mut DisplayInjection
-    ) -> Self {
-        let proba_model = ProbaModel::create_and_solve(problem, fixed_traces, fix_sequence, trace_cache, display_injection);
-        BacktrackNode::from_proba_model(&proba_model)
+    ) -> Result<Self, String> {
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("Stop requested, not creating BacktrackNode from fixed traces");
+            return Err("Stop requested".to_string());
+        }
+        let proba_model = ProbaModel::create_and_solve(problem, fixed_traces, fix_sequence, trace_cache, display_injection)?;
+        let result = BacktrackNode::from_proba_model(&proba_model);
+        Ok(result)
     }
     /// if self is already up to date, return none
     pub fn try_update_proba_model(
@@ -160,12 +165,16 @@ impl BacktrackNode {
         trace_cache: &mut TraceCache,
         display_injection: &mut DisplayInjection,
     ) -> Result<(), String> {
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("Stop requested, not updating ProbaModel");
+            return Err("Stop requested".to_string());
+        }
         if self.prob_up_to_date {
             return Err("Probabilistic model is already up to date".to_string()); // If the probabilistic model is already up to date, do nothing
         }
         let fixed_traces = &self.fixed_traces;
         let fix_sequence = self.fix_sequence.clone();
-        let new_node = BacktrackNode::from_fixed_traces(problem, fixed_traces, fix_sequence, trace_cache, display_injection);
+        let new_node = BacktrackNode::from_fixed_traces(problem, fixed_traces, fix_sequence, trace_cache, display_injection)?;
         *self = new_node; // Update self with the new node
         Ok(())
     }

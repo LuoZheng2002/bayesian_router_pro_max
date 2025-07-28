@@ -77,7 +77,11 @@ impl ProbaModel {
         fix_sequence: Vec<ConnectionID>,
         trace_cache: &mut TraceCache,
         display_injection: &mut DisplayInjection,
-    ) -> Self {
+    ) -> Result<Self, String> {
+        if display_injection.stop_requested.load(Ordering::Relaxed) {
+            println!("Stop requested, not creating ProbaModel");
+            return Err("Stop requested".to_string());
+        }
         let mut connection_ids: Vec<ConnectionID> = Vec::new();
         for net_info in problem.nets.values() {
             for connection in net_info.connections.keys() {
@@ -101,7 +105,12 @@ impl ProbaModel {
             next_iteration: NonZeroUsize::new(1).expect("Next iteration must be non-zero"),
         };
         // display and block
-        let mut display_when_necessary = |proba_model: &ProbaModel, command_flag: CommandFlag, display_injection: &mut DisplayInjection| {
+        let display_when_necessary = |proba_model: &ProbaModel, command_flag: CommandFlag, display_injection: &mut DisplayInjection| {
+            if display_injection.stop_requested.load(Ordering::Relaxed) {
+                println!("Stop requested, not displaying ProbaModel");
+                return;
+            }
+            // println!("Displaying ProbaModel");
             let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
             let task_command_level = command_flag.get_level();
             // let render_model = proba_model.to_pcb_render_model(problem);
@@ -131,13 +140,13 @@ impl ProbaModel {
             display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
 
             for i in 0..10 {
-                println!("Updating posterior for the {}th time", i + 1);
+                // println!("Updating posterior for the {}th time", i + 1);
                 proba_model.update_posterior();
                 display_when_necessary(&proba_model, CommandFlag::AstarFrontierOrUpdatePosterior, display_injection);
             }
             display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
         }
-        proba_model
+        Ok(proba_model)
     }
 
     fn sample_new_traces(
@@ -521,10 +530,10 @@ impl ProbaModel {
                             .as_str(),
                         );
                     if connection_num_generated_traces >= max_num_traces {
-                        println!(
-                            "ConnectionID {:?} already has enough traces, skipping",
-                            connection_id
-                        );
+                        // println!(
+                        //     "ConnectionID {:?} already has enough traces, skipping",
+                        //     connection_id
+                        // );
                         continue; // Skip this connection if it already has enough traces
                     }
                     // first check if any of the traces in connection_to_visited_traces satisfy the constraints
@@ -546,17 +555,17 @@ impl ProbaModel {
                         };
                         if astar_check.check() {
                             found_satisfying_trace = true; // the trace satisfies the constraints
-                            println!("OK: Stored trace path {} satisfies the constraints", i);
+                            // println!("OK: Stored trace path {} satisfies the constraints", i);
                             break; // we found a trace that satisfies the constraints, no need to generate a new one
                         } else {
-                            println!("Err: Stored trace path {} does not satisfy the constraints", i);
+                            // println!("Err: Stored trace path {} does not satisfy the constraints", i);
                         }
                     }
                     if found_satisfying_trace {
-                        println!(
-                            "Found a satisfying trace for ConnectionID {:?}, skipping A*",
-                            connection_id
-                        );
+                        // println!(
+                        //     "Found a satisfying trace for ConnectionID {:?}, skipping A*",
+                        //     connection_id
+                        // );
                         continue; // Skip this connection if a satisfying trace is found
                     }
                     
@@ -574,12 +583,12 @@ impl ProbaModel {
                             num_layers: problem.num_layers,
                         };
                         if astar_check.check() {
-                            println!("Cache Hit!");                            
+                            // println!("Cache Hit!");                            
                             cached_trace = Some(trace_path.clone());
                             
                             break; // we found a trace that satisfies the constraints, no need to generate a new one
                         }else{
-                            println!("Cache Miss!");
+                           //  println!("Cache Miss!");
                         }
                     }
                     let trace_path = if let Some(generated_trace) = cached_trace {
@@ -625,7 +634,7 @@ impl ProbaModel {
                         trace_path
                     };
 
-                    assert!(!visited_traces.contains(&trace_path.anchors), "Trace path is supposed to be a new one generated by A*");       
+                    // assert!(!visited_traces.contains(&trace_path.anchors), "Trace path is supposed to be a new one generated by A*");       
 
                     visited_traces.insert(trace_path.anchors.clone());
                     current_connection_visited_traces.push(trace_path.clone());
@@ -873,7 +882,7 @@ impl ProbaModel {
             // let opportunity_cost_weight = *OPPORTUNITY_COST_WEIGHT.lock().unwrap();
             let k = f64::ln(2.0) / HALF_PROBABILITY_OPPORTUNITY_COST;
             let opportunity_cost = f64::exp(-k * target_penalty);
-            println!("penalty: {}, opportunity cost: {}", target_penalty, opportunity_cost);
+            // println!("penalty: {}, opportunity cost: {}", target_penalty, opportunity_cost);
             assert!(
                 opportunity_cost >= 0.0 && opportunity_cost <= 1.0,
                 "Opportunity cost must be between 0 and 1, got: {}",
