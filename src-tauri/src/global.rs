@@ -1,6 +1,7 @@
 use std::{sync::{atomic::{AtomicBool, AtomicUsize}, Condvar, Mutex}, thread::JoinHandle};
 
 use lazy_static::lazy_static;
+use tauri::AppHandle;
 
 use crate::algorithm_thread::AlgorithmThreadHandle;
 
@@ -19,31 +20,10 @@ lazy_static!{
     pub static ref APP_HANDLE: Mutex<Option<AppHandle>> = Mutex::new(None);
 }
 
-use std::sync::{Condvar, Mutex, atomic::AtomicU8};
 
-use lazy_static::lazy_static;
 
-pub enum CommandFlag {
-    AstarFrontierOrUpdatePosterior,
-    AstarInOut,
-    UpdatePosteriorResult,
-    ProbaModelResult,
-    Auto,
-}
-
-impl CommandFlag {
-    pub fn get_level(&self) -> u8 {
-        match self {
-            CommandFlag::AstarFrontierOrUpdatePosterior => 0,
-            CommandFlag::AstarInOut => 1,
-            CommandFlag::UpdatePosteriorResult => 2,
-            CommandFlag::ProbaModelResult => 3,
-            CommandFlag::Auto => 4,
-        }
-    }
-}
 
 pub static COMMAND_MUTEX: Mutex<()> = Mutex::new(());
 pub static COMMAND_CV: Condvar = Condvar::new();
-pub static TARGET_COMMAND_LEVEL: AtomicU8 = AtomicU8::new(0);
+
 

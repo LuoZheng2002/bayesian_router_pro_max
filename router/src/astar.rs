@@ -9,9 +9,8 @@ use std::{
 use fixed::traits::Fixed;
 use ordered_float::NotNan;
 
-use crate::post_process::optimize_path;
+use crate::{command_flags::{CommandFlag, TARGET_COMMAND_LEVEL}, display_injection::DisplayInjection, post_process::optimize_path};
 use crate::{
-    command_flags::{COMMAND_CVS, COMMAND_LEVEL, COMMAND_MUTEXES, CommandFlag},
     quad_tree::QuadTreeNode,
 };
 
@@ -985,24 +984,25 @@ impl AStarModel {
         &self,
         frontier: &BinaryHeap<BinaryHeapItem<Reverse<NotNan<f64>>, Rc<AstarNode>>>,
         command_flag: CommandFlag,
+        display_injection: &mut DisplayInjection,
     ) {
-        let current_command_level = COMMAND_LEVEL.load(Ordering::Relaxed);
-        let target_command_level = command_flag.get_level();
-        if current_command_level <= target_command_level {
-            {
-                let mut pcb_render_model = pcb_render_model.lock().unwrap();
-                if pcb_render_model.is_some() {
-                    return; // already rendered, no need to update
-                }
+        let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
+        let task_command_level = command_flag.get_level();
+        if target_command_level <= task_command_level {
+            // Target level is less than task level
+            let render_model = self.astar_to_render_model(frontier);
+            while !(display_injection.can_submit_render_model)() {
+                // Wait until we can submit the render model
+            }            
+            (display_injection.submit_render_model)(render_model);
+            (display_injection.block_until_signal)();
+        } else {
+            if (display_injection.can_submit_render_model)() {
+                // If we can submit the render model, do it
                 let render_model = self.astar_to_render_model(frontier);
-                *pcb_render_model = Some(render_model);
+                (display_injection.submit_render_model)(render_model);
             }
-            // block the thread until the user clicks a button
-            {
-                let mutex_guard = COMMAND_MUTEXES[0].lock().unwrap();
-                let _unused = COMMAND_CVS[0].wait(mutex_guard).unwrap();
-            }
-        }
+        }        
     }
     fn final_trace_to_render_model(
         &self,
@@ -1078,29 +1078,30 @@ impl AStarModel {
 
     fn display_final_trace(&self,
         trace: &TracePath,
-        command_flag: CommandFlag
+        command_flag: CommandFlag,
+        display_injection: &mut DisplayInjection,
     ){
-        let current_command_level = COMMAND_LEVEL.load(Ordering::Relaxed);
-        let target_command_level = command_flag.get_level();
-        if current_command_level <= target_command_level {
-            {
-                let mut pcb_render_model = pcb_render_model.lock().unwrap();
-                if pcb_render_model.is_some() {
-                    return; // already rendered, no need to update
-                }
+        let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
+        let task_command_level = command_flag.get_level();
+        if target_command_level <= task_command_level {
+            let render_model = self.final_trace_to_render_model(trace);
+            while !(display_injection.can_submit_render_model)() {
+                // wait until we can submit the render model
+            }            
+            (display_injection.submit_render_model)(render_model);
+            (display_injection.block_until_signal)();        
+        } else {
+            if (display_injection.can_submit_render_model)() {
+                // If we can submit the render model, do it
                 let render_model = self.final_trace_to_render_model(trace);
-                *pcb_render_model = Some(render_model);
-            }
-            // block the thread until the user clicks a button
-            {
-                let mutex_guard = COMMAND_MUTEXES[0].lock().unwrap();
-                let _unused = COMMAND_CVS[0].wait(mutex_guard).unwrap();
+                (display_injection.submit_render_model)(render_model);
             }
         }
     }
 
     pub fn run(
         &self,
+        display_injection: &mut DisplayInjection,
     ) -> Result<AStarResult, String> {
         println!("Running A*");
         SAMPLE_CNT.fetch_add(1, Ordering::SeqCst);
@@ -1133,7 +1134,7 @@ impl AStarModel {
             });
         }
         let mut visited: HashSet<AstarNodeKey> = HashSet::new();
-        self.display_when_necessary( &frontier, CommandFlag::AstarInOut); // display the initial state of the frontier
+        self.display_when_necessary( &frontier, CommandFlag::AstarInOut, display_injection); // display the initial state of the frontier
 
         let mut trial_count = 0;
         while !frontier.is_empty() {
@@ -1146,6 +1147,7 @@ impl AStarModel {
                 self.display_when_necessary(
                     &frontier,
                     CommandFlag::AstarInOut,
+                    display_injection,
                 ); // display the initial state of the frontier
 
                 // Reached the end node, construct the trace path
@@ -1173,7 +1175,7 @@ impl AStarModel {
                     print!(" {:?}", segment.get_direction());                     
                 }
                 println!();
-                self.display_final_trace(&trace_path, CommandFlag::AstarInOut);         
+                self.display_final_trace(&trace_path, CommandFlag::AstarInOut, display_injection);         
                 let trace_path = optimize_path(
                     &trace_path,
                     &check_collision_for_trace,
@@ -1183,7 +1185,7 @@ impl AStarModel {
                     self.via_diameter,
                 );    
                 println!("Finished one iteration of optimization");
-                self.display_final_trace(&trace_path, CommandFlag::AstarInOut);                
+                self.display_final_trace(&trace_path, CommandFlag::AstarInOut, display_injection);                
                 return Ok(AStarResult { trace_path });
             }
 
@@ -1198,7 +1200,7 @@ impl AStarModel {
             // don't consider visited nodes as trials
             trial_count += 1;
             if trial_count > MAX_TRIALS {
-                self.display_when_necessary(&frontier, CommandFlag::Auto);
+                self.display_when_necessary(&frontier, CommandFlag::Auto, display_injection);
                 return Err("A* search exceeded maximum trials".to_string());
             }
             visited.insert(current_key.clone());
@@ -1558,9 +1560,10 @@ impl AStarModel {
             self.display_when_necessary(
                 &frontier,
                 CommandFlag::AstarFrontierOrUpdatePosterior,
+                display_injection,
             ); // display the initial state of the frontier
         }
-        self.display_when_necessary(&frontier, CommandFlag::Auto);
+        self.display_when_necessary(&frontier, CommandFlag::Auto, display_injection);
         Err("No path found".to_string()) // no path found
     }
 }

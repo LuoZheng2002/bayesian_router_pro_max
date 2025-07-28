@@ -3,7 +3,7 @@ use std::{cell::RefCell, cmp::Reverse, collections::{BinaryHeap, HashMap, VecDeq
 use ordered_float::NotNan;
 use shared::{binary_heap_item::BinaryHeapItem, collider::Collider, color_float3::ColorFloat3, hyperparameters::SAMPLE_CNT, pad::{Pad, PadName}, pcb_problem::{Connection, ConnectionID, FixedTrace, NetInfo, NetName, PcbProblem, PcbSolution}, pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable}, prim_shape::PrimShape, trace_path::{self, TracePath}};
 
-use crate::{astar::{self, AStarModel}, astar_check_struct::AStarCheck, bayesian_backtrack_algo::TraceCache, command_flags::{CommandFlag, COMMAND_CVS, COMMAND_LEVEL, COMMAND_MUTEXES}, quad_tree::QuadTreeNode};
+use crate::{astar::{self, AStarModel}, astar_check_struct::AStarCheck, bayesian_backtrack_algo::TraceCache, command_flags::{CommandFlag, TARGET_COMMAND_LEVEL}, display_injection::{self, DisplayInjection}, quad_tree::QuadTreeNode};
 
 
 
@@ -82,28 +82,29 @@ fn node_to_pcb_render_model(problem: &PcbProblem, node: &NaiveBacktrackNode) -> 
 fn display_when_necessary(
     node: &NaiveBacktrackNode,
     pcb_problem: &PcbProblem,
+    display_injection: &mut DisplayInjection,
 ) {
-    let command_level = COMMAND_LEVEL.load(Ordering::Relaxed);
-    match (std::cmp(command_level, ))
-    {
-        let mut pcb_render_model = pcb_render_model.lock().unwrap();
-        if pcb_render_model.is_some() {
-            return; // already rendered, no need to update
-        }
+    let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
+    let task_command_level = CommandFlag::ProbaModelResult.get_level();
+    if target_command_level <= task_command_level {
         let render_model = node_to_pcb_render_model(pcb_problem, node);
-        *pcb_render_model = Some(render_model);
-    }
-    if command_level <= CommandFlag::ProbaModelResult.get_level() {
-        // block the thread until the user clicks a button
-        {
-            let mutex_guard = COMMAND_MUTEXES[3].lock().unwrap();
-            let _unused = COMMAND_CVS[3].wait(mutex_guard).unwrap();
+        while !(display_injection.can_submit_render_model)() {
+            // wait until we can submit the render model
+        }            
+        (display_injection.submit_render_model)(render_model);
+        (display_injection.block_until_signal)();        
+    } else {
+        if (display_injection.can_submit_render_model)() {
+            // If we can submit the render model, do it
+            let render_model = node_to_pcb_render_model(pcb_problem, node);
+            (display_injection.submit_render_model)(render_model);
         }
-    } 
+    }
 }
 pub fn naive_backtrack(problem: &PcbProblem, 
     trace_cache: &mut TraceCache,
     heuristics: Option<Vec<ConnectionID>>,
+    display_injection: &mut DisplayInjection,
 ) -> Result<PcbSolution, String> {
     // prepare the obstacles for the first A* run    
     let border_colliders = AStarModel::calculate_border_colliders(problem.width, problem.height, problem.center);
@@ -232,7 +233,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
                         border_colliders_cache: RefCell::new(None),
                         border_shapes_cache: RefCell::new(None),
                     };
-                    let result = astar_model.run();
+                    let result = astar_model.run(display_injection);
                     let result = match result{
                         Ok(result) => result,
                         Err(e) => {
@@ -296,7 +297,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
         print_top_node(top_node);
         assert!(top_node.current_connection.is_none());
 
-        display_when_necessary(&top_node, &problem);
+        display_when_necessary(&top_node, &problem, display_injection);
         if top_node.alternative_connections.is_empty() {
             if !top_node.failed_connections.is_empty() {
                 println!("No more alternative connections but have failed connections, fail to solve");
@@ -458,7 +459,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
                 border_colliders_cache: RefCell::new(None),
                 border_shapes_cache: RefCell::new(None),
             };
-            let result = astar_model.run();
+            let result = astar_model.run(display_injection);
             let result = match result {
                 Ok(result) => result,
                 Err(e) => {

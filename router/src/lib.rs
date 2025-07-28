@@ -11,3 +11,4 @@ pub mod astar_check_struct;
 pub mod naive_backtrack_algo;
 pub mod bayesian_backtrack_algo;
 pub mod deterministic_rand;
+pub mod display_injection;

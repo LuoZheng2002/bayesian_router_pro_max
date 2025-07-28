@@ -3,8 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 
 use leptos::{html::Canvas, prelude::*};
 use leptos_router::hooks::use_navigate;
+use shared::my_result::MyResult;
+use tauri_sys::core::invoke;
 use wasm_bindgen::{closure, prelude::Closure, JsCast};
 use wasm_bindgen_futures::spawn_local;
+
 
 use crate::{app_state::{self, AppState}, render_context::RenderContext, render_model_to_submissions::render_model_to_submissions};
 
@@ -23,6 +26,20 @@ pub fn PcbPage() -> impl IntoView {
 
     // We'll use this signal to track initialization status
     let (initialized, set_initialized) = signal(false);
+
+    let on_signal_clicked = move|_|{
+        spawn_local(async move {
+            let result: MyResult<(), String> = invoke("signal", ()).await;
+            match result{
+                MyResult::Ok(_) => {
+                    web_sys::console::log_1(&"Signal sent successfully".into());
+                },
+                MyResult::Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to send signal: {}", e).into());
+                }
+            }
+        });
+    };
 
     
     Effect::new( move |_| {
@@ -82,8 +99,8 @@ pub fn PcbPage() -> impl IntoView {
                 <button on:click=on_settings_clicked class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     "Settings"
                 </button>
-                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    "Button 2"
+                <button on:click=on_signal_clicked class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    "Signal"
                 </button>
                 <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     "Button 3"

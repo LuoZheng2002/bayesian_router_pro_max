@@ -14,9 +14,7 @@ use shared::{
 };
 
 use crate::{
-    backtrack_node::BacktrackNode,
-    block_or_sleep,
-    command_flags::{CommandFlag, COMMAND_CVS, COMMAND_LEVEL, COMMAND_MUTEXES}, naive_backtrack_algo::naive_backtrack,
+    backtrack_node::BacktrackNode, block_or_sleep, command_flags::{CommandFlag, TARGET_COMMAND_LEVEL}, display_injection::{self, DisplayInjection}, naive_backtrack_algo::naive_backtrack
 };
 
 
@@ -28,6 +26,7 @@ pub struct TraceCache{
 pub fn bayesian_backtrack(
     pcb_problem: &PcbProblem,
     trace_cache: &mut TraceCache,
+    display_injection: &mut DisplayInjection,
 ) -> Result<PcbSolution, String> {
     let connections = pcb_problem.nets.iter()
         .flat_map(|(_, net_info)| net_info.connections.keys().cloned())
@@ -102,29 +101,28 @@ pub fn bayesian_backtrack(
     fn display_when_necessary(
         node: &BacktrackNode,
         pcb_problem: &PcbProblem,
+        display_injection: &mut DisplayInjection,
     ) {
-        let command_level = COMMAND_LEVEL.load(Ordering::Relaxed);
-        {
-            let mut pcb_render_model = pcb_render_model.lock().unwrap();
-            if pcb_render_model.is_some() {
-                return; // already rendered, no need to update
-            }
+        let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
+        let task_command_level = CommandFlag::ProbaModelResult.get_level();
+        if target_command_level <= task_command_level {
             let render_model = node_to_pcb_render_model(pcb_problem, node);
-            *pcb_render_model = Some(render_model);
-        }
-        if command_level <= CommandFlag::ProbaModelResult.get_level() {
-            // block the thread until the user clicks a button
-            {
-                let mutex_guard = COMMAND_MUTEXES[3].lock().unwrap();
-                let _unused = COMMAND_CVS[3].wait(mutex_guard).unwrap();
-            }
+            while !(display_injection.can_submit_render_model)() {
+                // wait until we can submit the render model
+            }            
+            (display_injection.submit_render_model)(render_model);
+            (display_injection.block_until_signal)();        
         } else {
-            thread::sleep(Duration::from_millis(0));
+            if (display_injection.can_submit_render_model)() {
+                // If we can submit the render model, do it
+                let render_model = node_to_pcb_render_model(pcb_problem, node);
+                (display_injection.submit_render_model)(render_model);
+            }
         }
     }
 
     let first_node =
-        BacktrackNode::from_fixed_traces(pcb_problem, &HashMap::new(), Vec::new(), trace_cache);
+        BacktrackNode::from_fixed_traces(pcb_problem, &HashMap::new(), Vec::new(), trace_cache, display_injection);
     // assume the first node has trace candidates
     node_stack.push(first_node);
 
@@ -135,6 +133,7 @@ pub fn bayesian_backtrack(
         display_when_necessary(
             node_stack.last().unwrap(),
             pcb_problem,
+            display_injection,
         );
         let top_node = node_stack.last_mut().unwrap();
         if top_node.is_solution(pcb_problem) {
@@ -154,7 +153,7 @@ pub fn bayesian_backtrack(
             // return Ok(solution);
         }
         let display_and_block_closure = |node: &BacktrackNode| {
-            display_when_necessary(node, pcb_problem, pcb_render_model.clone());
+            display_when_necessary(node, pcb_problem, display_injection);
         };
         let new_node =
             top_node.try_fix_top_k_ranked_trace(display_and_block_closure, NUM_TOP_RANKED_TO_TRY);
@@ -165,7 +164,7 @@ pub fn bayesian_backtrack(
             // assert!(new_node.prob_up_to_date, "New node must be up to date");
             let mut new_node = new_node.unwrap();
             if node_stack.len() % UPDATE_PROBA_SKIP_STRIDE == 0 {
-                let result = new_node.try_update_proba_model(pcb_problem, trace_cache);
+                let result = new_node.try_update_proba_model(pcb_problem, trace_cache, display_injection);
                 if let Err(err) = result {
                     println!("Failed to update the probabilistic model: {}", err);
                     panic!("Failed to update the probabilistic model");
@@ -193,7 +192,7 @@ pub fn bayesian_backtrack(
     println!("Number of samples taken by Bayesian backtrack: {}", SAMPLE_CNT.load(Ordering::SeqCst));
     SAMPLE_CNT.store(0, Ordering::SeqCst);
     assert!(heuristics.is_some(), "Heuristics must be set before calling naive backtrack");
-    let result = naive_backtrack(pcb_problem, trace_cache, heuristics);
+    let result = naive_backtrack(pcb_problem, trace_cache, heuristics, display_injection);
     println!("Number of samples taken by Naive backtrack: {}", SAMPLE_CNT.load(Ordering::SeqCst));
     SAMPLE_CNT.store(0, Ordering::SeqCst);
     result

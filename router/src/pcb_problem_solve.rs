@@ -2,7 +2,7 @@ use std::sync::{atomic::Ordering, Arc, Mutex};
 
 use shared::{hyperparameters::SAMPLE_CNT, pcb_problem::{ConnectionID, PcbProblem, PcbSolution}, pcb_render_model::PcbRenderModel};
 
-use crate::{bayesian_backtrack_algo::{bayesian_backtrack, TraceCache}, naive_backtrack_algo::naive_backtrack};
+use crate::{bayesian_backtrack_algo::{bayesian_backtrack, TraceCache}, display_injection::{self, DisplayInjection}, naive_backtrack_algo::naive_backtrack};
 
 
 
@@ -10,6 +10,7 @@ use crate::{bayesian_backtrack_algo::{bayesian_backtrack, TraceCache}, naive_bac
 pub fn solve_pcb_problem(
     pcb_problem: &PcbProblem,
     bayesian: bool,
+    display_injection: &mut DisplayInjection,
 ) -> Result<PcbSolution, String> {
     let connections: Vec<ConnectionID> = pcb_problem.nets.iter().flat_map(|(_, net_info)| net_info.connections.keys().cloned()).collect::<Vec<_>>();
     let mut trace_cache = TraceCache{
@@ -18,10 +19,10 @@ pub fn solve_pcb_problem(
 
     let result = if bayesian {
         // Call the Bayesian backtrack function
-        bayesian_backtrack(pcb_problem, &mut trace_cache)
+        bayesian_backtrack(pcb_problem, &mut trace_cache, display_injection)
     } else {
         // Call the naive backtrack function
-        naive_backtrack(pcb_problem, &mut trace_cache, None)
+        naive_backtrack(pcb_problem, &mut trace_cache, None, display_injection)
     };
     match result{
         Ok(solution) => {

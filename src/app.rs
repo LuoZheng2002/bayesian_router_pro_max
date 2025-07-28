@@ -16,9 +16,7 @@ use futures::StreamExt;
 // #[wasm_bindgen]
 // extern "C" {
 //     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-//     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-//     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
-//     async fn listen(event: String, handler: JsValue) -> JsValue;
+//     pub async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 // }
 
 #[derive(Serialize, Deserialize)]

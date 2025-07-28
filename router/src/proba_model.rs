@@ -20,7 +20,7 @@ use shared::{
 };
 
 use crate::{
-    astar::AStarModel, astar_check_struct::AStarCheck, bayesian_backtrack_algo::TraceCache, command_flags::{CommandFlag, COMMAND_CVS, COMMAND_LEVEL, COMMAND_MUTEXES}, deterministic_rand::create_deterministic_rng, quad_tree::{self, QuadTreeNode}
+    astar::AStarModel, astar_check_struct::AStarCheck, bayesian_backtrack_algo::TraceCache, command_flags::{CommandFlag, TARGET_COMMAND_LEVEL}, deterministic_rand::create_deterministic_rng, display_injection::{self, DisplayInjection}, quad_tree::{self, QuadTreeNode}
 };
 
 #[derive(Copy, Debug, Clone, PartialEq, Hash, Eq, PartialOrd, Ord)]
@@ -76,6 +76,7 @@ impl ProbaModel {
         fixed_traces: &HashMap<ConnectionID, FixedTrace>,
         fix_sequence: Vec<ConnectionID>,
         trace_cache: &mut TraceCache,
+        display_injection: &mut DisplayInjection,
     ) -> Self {
         let mut connection_ids: Vec<ConnectionID> = Vec::new();
         for net_info in problem.nets.values() {
@@ -100,44 +101,41 @@ impl ProbaModel {
             next_iteration: NonZeroUsize::new(1).expect("Next iteration must be non-zero"),
         };
         // display and block
-        let display_when_necessary = |proba_model: &ProbaModel, command_flag: CommandFlag| {
-            let current_command_level = COMMAND_LEVEL.load(Ordering::Relaxed);
-            let target_command_level = command_flag.get_level();
-            if current_command_level <= target_command_level {
-                {
-                    let mut pcb_render_model = pcb_render_model.lock().unwrap();
-                    if pcb_render_model.is_some() {
-                        return;
-                    }
-                    let render_model = proba_model.to_pcb_render_model(problem);
-                    *pcb_render_model = Some(render_model);
-                }
-                {
-                    let mutex_guard = COMMAND_MUTEXES[target_command_level as usize]
-                        .lock()
-                        .unwrap();
-                    let _unused = COMMAND_CVS[target_command_level as usize]
-                        .wait(mutex_guard)
-                        .unwrap();
-                }
+        let mut display_when_necessary = |proba_model: &ProbaModel, command_flag: CommandFlag, display_injection: &mut DisplayInjection| {
+            let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
+            let task_command_level = command_flag.get_level();
+            // let render_model = proba_model.to_pcb_render_model(problem);
+            if target_command_level <= task_command_level {
+            let render_model = proba_model.to_pcb_render_model(problem);
+            while !(display_injection.can_submit_render_model)() {
+                // wait until we can submit the render model
+            }            
+            (display_injection.submit_render_model)(render_model);
+            (display_injection.block_until_signal)();        
+        } else {
+            if (display_injection.can_submit_render_model)() {
+                // If we can submit the render model, do it
+                let render_model = proba_model.to_pcb_render_model(problem);
+                (display_injection.submit_render_model)(render_model);
             }
+        }
         };
-        display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult);
+        display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
 
         // sample and then update posterior
         // to do: specify iteration number
         for j in 0..SAMPLE_ITERATIONS {
             println!("Sampling new traces for iteration {}", j + 1);
-            proba_model.sample_new_traces(problem,  trace_cache);
+            proba_model.sample_new_traces(problem,  trace_cache, display_injection);
             println!("Done sampling new traces");
-            display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult);
+            display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
 
             for i in 0..10 {
                 println!("Updating posterior for the {}th time", i + 1);
                 proba_model.update_posterior();
-                display_when_necessary(&proba_model, CommandFlag::AstarFrontierOrUpdatePosterior);
+                display_when_necessary(&proba_model, CommandFlag::AstarFrontierOrUpdatePosterior, display_injection);
             }
-            display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult);
+            display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
         }
         proba_model
     }
@@ -146,6 +144,7 @@ impl ProbaModel {
         &mut self,
         problem: &PcbProblem,
         trace_cache: &mut TraceCache,
+        display_injection: &mut DisplayInjection,
     ) {
         let mut rng = create_deterministic_rng();
         let mut new_proba_traces: Vec<Rc<ProbaTrace>> = Vec::new();
@@ -614,7 +613,7 @@ impl ProbaModel {
                             border_shapes_cache: RefCell::new(None), // Cache for border shapes, initialized to None
                         };
                         // run A* algorithm to find a path
-                        let astar_result = astar_model.run();
+                        let astar_result = astar_model.run(display_injection);
                         let astar_result = match astar_result {
                             Ok(result) => result,
                             Err(err) => {

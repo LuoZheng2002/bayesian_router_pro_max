@@ -3,6 +3,7 @@ pub mod handle_file_open;
 pub mod global;
 pub mod submit_pcb_render_model;
 pub mod submission_cooldown_thread;
+pub mod commands;
 
 use std::path::Path;
 
@@ -24,9 +25,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())        
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![greet])
-        .on_window_event(|event| {
+        .on_window_event(|window, window_event| {
             use tauri::WindowEvent;
-            if let WindowEvent::CloseRequested { api, .. } = event.event() {
+            if let WindowEvent::CloseRequested { api, .. } = window_event {
                 PROGRAM_SHOULD_EXIT.store(true, std::sync::atomic::Ordering::Relaxed);
             }
         })
@@ -56,7 +57,7 @@ pub fn run() {
 
                 match event.id().0.as_str() {
                     "open" => {
-                        open_file(app_handle);
+                        open_file(app_handle.clone());
                     }
                     "quit" => {
                         println!("quit event");

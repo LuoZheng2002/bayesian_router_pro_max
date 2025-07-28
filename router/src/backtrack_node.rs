@@ -11,7 +11,7 @@ use shared::{
     pcb_render_model::PcbRenderModel,
 };
 
-use crate::{bayesian_backtrack_algo::TraceCache, proba_model::{ProbaModel, ProbaTrace, Traces}};
+use crate::{bayesian_backtrack_algo::TraceCache, display_injection::{self, DisplayInjection}, proba_model::{ProbaModel, ProbaTrace, Traces}};
 
 #[derive(Debug, Clone)]
 pub struct BacktrackNode {
@@ -74,7 +74,7 @@ impl BacktrackNode {
     /// assume there are still candidates in the priority queue
     pub fn try_fix_top_k_ranked_trace(
         &mut self,
-        display_and_block: impl Fn(&BacktrackNode),
+        mut display_and_block: impl FnMut(&BacktrackNode),
         k: usize,
     ) -> Option<Self> {
         // for self, peek from the priority queue
@@ -148,8 +148,9 @@ impl BacktrackNode {
         fixed_traces: &HashMap<ConnectionID, FixedTrace>,
         fix_sequence: Vec<ConnectionID>,
         trace_cache: &mut TraceCache,
+        display_injection: &mut DisplayInjection
     ) -> Self {
-        let proba_model = ProbaModel::create_and_solve(problem, fixed_traces, fix_sequence, trace_cache);
+        let proba_model = ProbaModel::create_and_solve(problem, fixed_traces, fix_sequence, trace_cache, display_injection);
         BacktrackNode::from_proba_model(&proba_model)
     }
     /// if self is already up to date, return none
@@ -157,13 +158,14 @@ impl BacktrackNode {
         &mut self,
         problem: &PcbProblem,
         trace_cache: &mut TraceCache,
+        display_injection: &mut DisplayInjection,
     ) -> Result<(), String> {
         if self.prob_up_to_date {
             return Err("Probabilistic model is already up to date".to_string()); // If the probabilistic model is already up to date, do nothing
         }
         let fixed_traces = &self.fixed_traces;
         let fix_sequence = self.fix_sequence.clone();
-        let new_node = BacktrackNode::from_fixed_traces(problem, fixed_traces, fix_sequence, trace_cache);
+        let new_node = BacktrackNode::from_fixed_traces(problem, fixed_traces, fix_sequence, trace_cache, display_injection);
         *self = new_node; // Update self with the new node
         Ok(())
     }
