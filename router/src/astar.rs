@@ -17,7 +17,7 @@ use crate::{
 use shared::{
     binary_heap_item::BinaryHeapItem,
     collider::{BorderCollider, Collider},
-    hyperparameters::{ASTAR_STRIDE, ASTAR_MAX_EXPANSIONS, SAMPLE_CNT, VIA_COST},
+    hyperparameters::{ASTAR_STRIDE, ASTAR_MAX_EXPANSIONS, VIA_COST},
     octile_distance::octile_distance_fixed,
     pad::PadLayer,
     pcb_render_model::{
@@ -1119,8 +1119,8 @@ impl AStarModel {
             ASTAR_STRIDE.lock().unwrap().clone()
         };
         // println!("Running A*");
-        SAMPLE_CNT.fetch_add(1, Ordering::SeqCst);
-        println!("Sample count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
+        // SAMPLE_CNT.fetch_add(1, Ordering::SeqCst);
+        // println!("Sample count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
         assert!(self.start.is_sum_even());
         assert!(self.end.is_sum_even());
         assert!(!self.start.is_x_odd_y_odd());

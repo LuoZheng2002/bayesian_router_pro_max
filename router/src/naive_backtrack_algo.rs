@@ -1,7 +1,7 @@
 use std::{cell::RefCell, cmp::Reverse, collections::{BinaryHeap, HashMap, VecDeque}, hash::Hash, rc::Rc, sync::{atomic::Ordering, Arc, Mutex}, thread, time::Duration};
 
 use ordered_float::NotNan;
-use shared::{binary_heap_item::BinaryHeapItem, collider::Collider, color_float3::ColorFloat3, hyperparameters::SAMPLE_CNT, pad::{Pad, PadName}, pcb_problem::{Connection, ConnectionID, FixedTrace, NetInfo, NetName, PcbProblem, PcbSolution}, pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable}, prim_shape::PrimShape, trace_path::{self, TracePath}};
+use shared::{binary_heap_item::BinaryHeapItem, collider::Collider, color_float3::ColorFloat3, hyperparameters::NUM_NAIVE_PATH_FINDING_CALLS, pad::{Pad, PadName}, pcb_problem::{Connection, ConnectionID, FixedTrace, NetInfo, NetName, PcbProblem, PcbSolution}, pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable}, prim_shape::PrimShape, trace_path::{self, TracePath}};
 
 use crate::{astar::{self, AStarModel}, astar_check_struct::AStarCheck, bayesian_backtrack_algo::TraceCache, command_flags::{CommandFlag, TARGET_COMMAND_LEVEL}, display_injection::{self, DisplayInjection}, quad_tree::QuadTreeNode};
 
@@ -253,6 +253,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
                         border_colliders_cache: RefCell::new(None),
                         border_shapes_cache: RefCell::new(None),
                     };
+                    NUM_NAIVE_PATH_FINDING_CALLS.fetch_add(1, Ordering::Relaxed);
                     let result = astar_model.run(display_injection);
                     let result = match result{
                         Ok(result) => result,
@@ -485,6 +486,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
                 border_colliders_cache: RefCell::new(None),
                 border_shapes_cache: RefCell::new(None),
             };
+            NUM_NAIVE_PATH_FINDING_CALLS.fetch_add(1, Ordering::Relaxed);
             let result = astar_model.run(display_injection);
             let result = match result {
                 Ok(result) => result,

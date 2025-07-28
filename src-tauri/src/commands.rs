@@ -2,10 +2,11 @@ use std::sync::atomic::Ordering;
 
 use router::command_flags::TARGET_COMMAND_LEVEL;
 use shared::hyperparameters::*;
+use shared::stats_enum::StatsEnum;
 use shared::{my_result::MyResult, settings_enum::SettingsEnum};
 use tauri::Emitter;
 
-use crate::global::{APP_HANDLE, COMMAND_CV, USE_BAYESIAN};
+use crate::global::{APP_HANDLE, COMMAND_CV, NUM_BAYESIAN_PATH_FINDING_CALLS, NUM_NAIVE_PATH_FINDING_CALLS, NUM_VIAS, TIME_ELAPSED, TOTAL_LENGTH, USE_BAYESIAN};
 
 
 
@@ -95,46 +96,72 @@ pub fn get_settings(setting: &str) -> SettingsEnum{
     println!("get_settings called for setting: {}", setting);
     match setting{
         "use_bayesian_inference" =>{
-            SettingsEnum::Bool(USE_BAYESIAN.load(Ordering::Relaxed))
+            let use_bayesian = USE_BAYESIAN.load(Ordering::Relaxed);
+            println!("use_bayesian_inference: {}", use_bayesian);
+            SettingsEnum::Bool(use_bayesian)
         },
         "astar_max_expansions" => {
-            SettingsEnum::Usize(ASTAR_MAX_EXPANSIONS.load(Ordering::Relaxed))
+            let astar_max_expansions = ASTAR_MAX_EXPANSIONS.load(Ordering::Relaxed);
+            println!("astar_max_expansions: {}", astar_max_expansions);
+            SettingsEnum::Usize(astar_max_expansions)
         },
         "astar_stride" => {
             let astar_stride = {
                 ASTAR_STRIDE.lock().unwrap().clone()
             };
-            SettingsEnum::Float(astar_stride.to_num::<f64>())
+            let astar_stride = astar_stride.to_num::<f64>();
+            println!("astar_stride: {}", astar_stride);
+            SettingsEnum::Float(astar_stride)
         },
         "trace_score_halved" => {
-            SettingsEnum::Float(HALF_PROBABILITY_RAW_SCORE.load(Ordering::Relaxed))
+            let half_probability_raw_score = HALF_PROBABILITY_RAW_SCORE.load(Ordering::Relaxed);
+            println!("trace_score_halved: {}", half_probability_raw_score);
+            SettingsEnum::Float(half_probability_raw_score)
         },
         "opportunity_cost_halved" => {
-            SettingsEnum::Float(HALF_PROBABILITY_OPPORTUNITY_COST.load(Ordering::Relaxed))
+            let half_probability_opportunity_cost = HALF_PROBABILITY_OPPORTUNITY_COST.load(Ordering::Relaxed);
+            println!("opportunity_cost_halved: {}", half_probability_opportunity_cost);
+            SettingsEnum::Float(half_probability_opportunity_cost)
         },
         "max_trace_generation_attempts" => {
-            SettingsEnum::Usize(MAX_GENERATION_ATTEMPTS.load(Ordering::Relaxed))
+            let max_generation_attempts = MAX_GENERATION_ATTEMPTS.load(Ordering::Relaxed);
+            println!("max_trace_generation_attempts: {}", max_generation_attempts);
+            SettingsEnum::Usize(max_generation_attempts)
         },
         "first_iteration_prior_probability" => {
-            SettingsEnum::Float(FIRST_ITERATION_PROBABILITY.load(Ordering::Relaxed))
+            let first_iteration_probability = FIRST_ITERATION_PROBABILITY.load(Ordering::Relaxed);
+            println!("first_iteration_prior_probability: {}", first_iteration_probability);
+            SettingsEnum::Float(first_iteration_probability)
         },
         "second_iteration_prior_probability" => {
-            SettingsEnum::Float(SECOND_ITERATION_PROBABILITY.load(Ordering::Relaxed))
+            let second_iteration_probability = SECOND_ITERATION_PROBABILITY.load(Ordering::Relaxed);
+            println!("second_iteration_prior_probability: {}", second_iteration_probability);
+            SettingsEnum::Float(second_iteration_probability)
         },
         "second_iteration_num_traces" => {
-            SettingsEnum::Usize(SECOND_ITERATION_NUM_TRACES.load(Ordering::Relaxed))
+            let second_iteration_num_traces = SECOND_ITERATION_NUM_TRACES.load(Ordering::Relaxed);
+            println!("second_iteration_num_traces: {}", second_iteration_num_traces);
+            SettingsEnum::Usize(second_iteration_num_traces)
         },
         "via_cost" => {
-            SettingsEnum::Float(VIA_COST.load(Ordering::Relaxed))
+            let via_cost = VIA_COST.load(Ordering::Relaxed);
+            println!("via_cost: {}", via_cost);
+            SettingsEnum::Float(via_cost)
         },
         "num_top_ranked_to_try" => {
-            SettingsEnum::Usize(NUM_TOP_RANKED_TO_TRY.load(Ordering::Relaxed))
+            let num_top_ranked_to_try = NUM_TOP_RANKED_TO_TRY.load(Ordering::Relaxed);
+            println!("num_top_ranked_to_try: {}", num_top_ranked_to_try);
+            SettingsEnum::Usize(num_top_ranked_to_try)
         },
         "sample_iterations" => {
-            SettingsEnum::Usize(SAMPLE_ITERATIONS.load(Ordering::Relaxed))
+            let sample_iterations = SAMPLE_ITERATIONS.load(Ordering::Relaxed);
+            println!("sample_iterations: {}", sample_iterations);
+            SettingsEnum::Usize(sample_iterations)
         },
         "update_probability_skip_stride" => {
-            SettingsEnum::Usize(UPDATE_PROBA_SKIP_STRIDE.load(Ordering::Relaxed))
+            let update_proba_skip_stride = UPDATE_PROBA_SKIP_STRIDE.load(Ordering::Relaxed);
+            println!("update_probability_skip_stride: {}", update_proba_skip_stride);
+            SettingsEnum::Usize(update_proba_skip_stride)
         },
         _=>{
             panic!("Unknown setting: {}", setting);
@@ -143,22 +170,25 @@ pub fn get_settings(setting: &str) -> SettingsEnum{
 }
 
 #[tauri::command]
-pub fn set_settings(setting: &str, value: SettingsEnum) -> Result<(),String>{
+pub fn set_settings(setting: &str, value: SettingsEnum) -> MyResult<(),String>{
+    println!("set_settings called for setting: {}, value: {:?}", setting, value);
     match setting {
         "use_bayesian_inference" => {
             if let SettingsEnum::Bool(val) = value {
-                USE_BAYESIAN.store(val, Ordering::Relaxed);
-                Ok(())
+                USE_BAYESIAN.store(val, Ordering::SeqCst);
+                println!("use_bayesian_inference set to: {}", USE_BAYESIAN.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "astar_max_expansions" => {
             if let SettingsEnum::Usize(val) = value {
-                ASTAR_MAX_EXPANSIONS.store(val, Ordering::Relaxed);
-                Ok(())
+                ASTAR_MAX_EXPANSIONS.store(val, Ordering::SeqCst);
+                println!("astar_max_expansions set to: {}", ASTAR_MAX_EXPANSIONS.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "astar_stride" => {
@@ -166,93 +196,130 @@ pub fn set_settings(setting: &str, value: SettingsEnum) -> Result<(),String>{
                 let new_astar_stride = astar_stride_from_raw(val);
                 let mut astar_stride = ASTAR_STRIDE.lock().unwrap();
                 *astar_stride = new_astar_stride;
-                Ok(())
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "trace_score_halved" => {
             if let SettingsEnum::Float(val) = value {
-                HALF_PROBABILITY_RAW_SCORE.store(val, Ordering::Relaxed);
-                Ok(())
+                HALF_PROBABILITY_RAW_SCORE.store(val, Ordering::SeqCst);
+                println!("trace_score_halved set to: {}", HALF_PROBABILITY_RAW_SCORE.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "opportunity_cost_halved" => {
             if let SettingsEnum::Float(val) = value {
-                HALF_PROBABILITY_OPPORTUNITY_COST.store(val, Ordering::Relaxed);
-                Ok(())
+                HALF_PROBABILITY_OPPORTUNITY_COST.store(val, Ordering::SeqCst);
+                println!("opportunity_cost_halved set to: {}", HALF_PROBABILITY_OPPORTUNITY_COST.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "max_trace_generation_attempts" => {
             if let SettingsEnum::Usize(val) = value {
-                MAX_GENERATION_ATTEMPTS.store(val, Ordering::Relaxed);
-                Ok(())
+                MAX_GENERATION_ATTEMPTS.store(val, Ordering::SeqCst);
+                println!("max_trace_generation_attempts set to: {}", MAX_GENERATION_ATTEMPTS.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "first_iteration_prior_probability" => {
             if let SettingsEnum::Float(val) = value {
-                FIRST_ITERATION_PROBABILITY.store(val, Ordering::Relaxed);
-                Ok(())
+                FIRST_ITERATION_PROBABILITY.store(val, Ordering::SeqCst);
+                println!("first_iteration_prior_probability set to: {}", FIRST_ITERATION_PROBABILITY.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "second_iteration_prior_probability" => {
             if let SettingsEnum::Float(val) = value {
-                SECOND_ITERATION_PROBABILITY.store(val, Ordering::Relaxed);
-                Ok(())
+                SECOND_ITERATION_PROBABILITY.store(val, Ordering::SeqCst);
+                println!("second_iteration_prior_probability set to: {}", SECOND_ITERATION_PROBABILITY.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "second_iteration_num_traces" => {
             if let SettingsEnum::Usize(val) = value {
-                SECOND_ITERATION_NUM_TRACES.store(val, Ordering::Relaxed);
-                Ok(())
+                SECOND_ITERATION_NUM_TRACES.store(val, Ordering::SeqCst);
+                println!("second_iteration_num_traces set to: {}", SECOND_ITERATION_NUM_TRACES.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "via_cost" => {
             if let SettingsEnum::Float(val) = value {
-                VIA_COST.store(val, Ordering::Relaxed);
-                Ok(())
+                VIA_COST.store(val, Ordering::SeqCst);
+                println!("via_cost set to: {}", VIA_COST.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "num_top_ranked_to_try" => {
             if let SettingsEnum::Usize(val) = value {
-                NUM_TOP_RANKED_TO_TRY.store(val, Ordering::Relaxed);
-                Ok(())
+                NUM_TOP_RANKED_TO_TRY.store(val, Ordering::SeqCst);
+                println!("num_top_ranked_to_try set to: {}", NUM_TOP_RANKED_TO_TRY.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "sample_iterations" => {
             if let SettingsEnum::Usize(val) = value {
-                SAMPLE_ITERATIONS.store(val, Ordering::Relaxed);
-                Ok(())
+                SAMPLE_ITERATIONS.store(val, Ordering::SeqCst);
+                println!("sample_iterations set to: {}", SAMPLE_ITERATIONS.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         "update_probability_skip_stride" => {
             if let SettingsEnum::Usize(val) = value {
-                UPDATE_PROBA_SKIP_STRIDE.store(val, Ordering::Relaxed);
-                Ok(())
+                UPDATE_PROBA_SKIP_STRIDE.store(val, Ordering::SeqCst);
+                println!("update_probability_skip_stride set to: {}", UPDATE_PROBA_SKIP_STRIDE.load(Ordering::SeqCst));
+                MyResult::Ok(())
             } else {
-                Err("Invalid value type".into())
+                MyResult::Err("Invalid value type".into())
             }
         },
         _=>{
-            Err(format!("Unknown setting: {}", setting))
+            MyResult::Err(format!("Unknown setting: {}", setting))
         }
+    }
+}
+
+#[tauri::command]
+pub fn get_stats(stat: &str) -> StatsEnum{
+    match stat{
+        "total_length" => {
+            let total_length = TOTAL_LENGTH.lock().unwrap().clone();
+            StatsEnum::Float(total_length)
+        },
+        "num_vias" => {
+            let num_vias = NUM_VIAS.lock().unwrap().clone();
+            StatsEnum::Usize(num_vias)
+        },
+        "time_elapsed" => {
+            let time_elapsed = TIME_ELAPSED.lock().unwrap().clone();
+            StatsEnum::Float(time_elapsed)
+        },
+        "num_bayesian_path_finding_calls" => {
+            let num_bayesian_path_finding_calls = NUM_BAYESIAN_PATH_FINDING_CALLS.lock().unwrap().clone();
+            StatsEnum::Usize(num_bayesian_path_finding_calls)
+        },
+        "num_naive_path_finding_calls" => {
+            let num_naive_path_finding_calls = NUM_NAIVE_PATH_FINDING_CALLS.lock().unwrap().clone();
+            StatsEnum::Usize(num_naive_path_finding_calls)
+        },
+        _ => panic!("Unknown stat: {}", stat),
     }
 }

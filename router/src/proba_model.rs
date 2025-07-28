@@ -10,7 +10,7 @@ use rand::distr::{Distribution, weighted::WeightedIndex};
 use shared::{
     collider::Collider,
     hyperparameters::{
-        FIRST_ITERATION_NUM_TRACES, FIRST_ITERATION_PROBABILITY, HALF_PROBABILITY_OPPORTUNITY_COST, MAX_GENERATION_ATTEMPTS, SAMPLE_ITERATIONS, SECOND_ITERATION_NUM_TRACES, SECOND_ITERATION_PROBABILITY
+        FIRST_ITERATION_NUM_TRACES, FIRST_ITERATION_PROBABILITY, HALF_PROBABILITY_OPPORTUNITY_COST, MAX_GENERATION_ATTEMPTS, NUM_BAYESIAN_PATH_FINDING_CALLS, SAMPLE_ITERATIONS, SECOND_ITERATION_NUM_TRACES, SECOND_ITERATION_PROBABILITY
     },
     pcb_problem::{Connection, ConnectionID, FixedTrace, NetName, PcbProblem},
     pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable},
@@ -623,6 +623,7 @@ impl ProbaModel {
                             border_shapes_cache: RefCell::new(None), // Cache for border shapes, initialized to None
                         };
                         // run A* algorithm to find a path
+                        NUM_BAYESIAN_PATH_FINDING_CALLS.fetch_add(1, Ordering::Relaxed);
                         let astar_result = astar_model.run(display_injection);
                         let astar_result = match astar_result {
                             Ok(result) => result,

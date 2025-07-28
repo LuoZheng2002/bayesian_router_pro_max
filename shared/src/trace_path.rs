@@ -398,6 +398,15 @@ impl TraceSegment {
             .map(|shape| ShapeRenderable { shape, color })
             .collect()
     }
+    pub fn calculate_length(&self) -> f64{
+        let start_x: f64 = self.start.x.to_num();
+        let start_y: f64 = self.start.y.to_num();
+        let end_x: f64 = self.end.x.to_num();
+        let end_y: f64 = self.end.y.to_num();
+        let dx = end_x - start_x;
+        let dy = end_y - start_y;
+        (dx.powi(2) + dy.powi(2)).sqrt()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -655,5 +664,15 @@ impl TracePath {
             RenderableBatch(renderables),
             RenderableBatch(clearance_renderables),
         ]
+    }
+    pub fn calculate_total_length(&self) -> f64{
+        let mut total_length: f64 = 0.0;
+        for segment in &self.segments {
+            total_length += segment.calculate_length();
+        }
+        total_length
+    }
+    pub fn get_num_vias(&self) -> usize {
+        self.vias.len()
     }
 }

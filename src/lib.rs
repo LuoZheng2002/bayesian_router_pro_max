@@ -16,3 +16,4 @@ pub mod home_page;
 pub mod pcb_page;
 pub mod settings_page;
 pub mod app_state;
+pub mod stats_page;

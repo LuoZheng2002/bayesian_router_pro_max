@@ -7,7 +7,7 @@ use std::{
 
 use shared::{
     color_float3::ColorFloat3,
-    hyperparameters::{NUM_TOP_RANKED_TO_TRY, SAMPLE_CNT, UPDATE_PROBA_SKIP_STRIDE},
+    hyperparameters::{NUM_TOP_RANKED_TO_TRY, UPDATE_PROBA_SKIP_STRIDE},
     pcb_problem::{ConnectionID, NetName, PcbProblem, PcbSolution},
     pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable, UpdatePcbRenderModel},
     prim_shape::PrimShape, trace_path::TracePath,
@@ -153,15 +153,15 @@ pub fn bayesian_backtrack(
         let top_node = node_stack.last_mut().unwrap();
         if top_node.is_solution(pcb_problem) {
             println!("Found a solution!");
-            println!("Number of samples taken: {}", shared::hyperparameters::SAMPLE_CNT.load(Ordering::SeqCst));
+            // println!("Number of samples taken: {}", shared::hyperparameters::SAMPLE_CNT.load(Ordering::SeqCst));
             // If the top node is a solution, we can return it
             let fixed_traces = top_node.fixed_traces.clone();
             let solution = PcbSolution {
                 determined_traces: fixed_traces,
                 scale_down_factor: pcb_problem.scale_down_factor,
             };
-            println!("Successfully found a solution with sample count {}", shared::hyperparameters::SAMPLE_CNT.load(Ordering::SeqCst));
-            SAMPLE_CNT.store(0, Ordering::SeqCst);
+            // println!("Successfully found a solution with sample count {}", shared::hyperparameters::SAMPLE_CNT.load(Ordering::SeqCst));
+            
 
             display_when_necessary(top_node, pcb_problem, CommandFlag::Auto, display_injection);
             // heuristics = Some(top_node.fix_sequence.clone());
@@ -205,11 +205,11 @@ pub fn bayesian_backtrack(
             break;
         }       
     }
-    println!("Number of samples taken by Bayesian backtrack: {}", SAMPLE_CNT.load(Ordering::SeqCst));
-    SAMPLE_CNT.store(0, Ordering::SeqCst);
+    // println!("Number of samples taken by Bayesian backtrack: {}", SAMPLE_CNT.load(Ordering::SeqCst));
+    // SAMPLE_CNT.store(0, Ordering::SeqCst);
     assert!(heuristics.is_some(), "Heuristics must be set before calling naive backtrack");
     let result = naive_backtrack(pcb_problem, trace_cache, heuristics, display_injection);
-    println!("Number of samples taken by Naive backtrack: {}", SAMPLE_CNT.load(Ordering::SeqCst));
-    SAMPLE_CNT.store(0, Ordering::SeqCst);
+    // println!("Number of samples taken by Naive backtrack: {}", SAMPLE_CNT.load(Ordering::SeqCst));
+    // SAMPLE_CNT.store(0, Ordering::SeqCst);
     result
 }

@@ -5,31 +5,34 @@ use lazy_static::lazy_static;
 
 use crate::{color_float3::ColorFloat3, vec2::FixedPoint};
 
-pub const HALF_PROBABILITY_RAW_SCORE: AtomicF64 = AtomicF64::new(10.0);
-pub const HALF_PROBABILITY_OPPORTUNITY_COST: AtomicF64 = AtomicF64::new(0.5);
+pub static HALF_PROBABILITY_RAW_SCORE: AtomicF64 = AtomicF64::new(10.0);
+pub static HALF_PROBABILITY_OPPORTUNITY_COST: AtomicF64 = AtomicF64::new(0.5);
 
 // pub const MAX_TRACES_PER_ITERATION: usize = 4; // Maximum number of traces per iteration
-pub const MAX_GENERATION_ATTEMPTS: AtomicUsize = AtomicUsize::new(4); // Maximum number of attempts to generate a trace
+pub static MAX_GENERATION_ATTEMPTS: AtomicUsize = AtomicUsize::new(4); // Maximum number of attempts to generate a trace
 
-pub const FIRST_ITERATION_PROBABILITY: AtomicF64 = AtomicF64::new(0.5); // Probability for the first iteration
-pub const SECOND_ITERATION_PROBABILITY: AtomicF64 = AtomicF64::new(0.25); // Probability for the second iteration
+pub static FIRST_ITERATION_PROBABILITY: AtomicF64 = AtomicF64::new(0.5); // Probability for the first iteration
+pub static SECOND_ITERATION_PROBABILITY: AtomicF64 = AtomicF64::new(0.25); // Probability for the second iteration
 
-pub const FIRST_ITERATION_NUM_TRACES: AtomicUsize = AtomicUsize::new(1); // this is immutable, just for consistency
+pub static FIRST_ITERATION_NUM_TRACES: AtomicUsize = AtomicUsize::new(1); // this is immutable, just for consistency
 
-pub const SECOND_ITERATION_NUM_TRACES: AtomicUsize = AtomicUsize::new(3);
+pub static SECOND_ITERATION_NUM_TRACES: AtomicUsize = AtomicUsize::new(3);
 
 // pub const BLOCK_THREAD: bool = true; // Whether to block the thread when waiting for a trace to be generated
 // pub const DISPLAY_ASTAR: bool = true; // Whether to display the A* search process
 
-pub const ASTAR_MAX_EXPANSIONS: AtomicUsize = AtomicUsize::new(2000); // Maximum number of trials to find a trace
+pub static ASTAR_MAX_EXPANSIONS: AtomicUsize = AtomicUsize::new(2000); // Maximum number of trials to find a trace
 
-pub const VIA_COST: AtomicF64 = AtomicF64::new(5.0); // Cost of placing a via
+pub static VIA_COST: AtomicF64 = AtomicF64::new(5.0); // Cost of placing a via
 
-pub const NUM_TOP_RANKED_TO_TRY: AtomicUsize = AtomicUsize::new(3); // Number of top-ranked traces to try fixing in each iteration
+pub static NUM_TOP_RANKED_TO_TRY: AtomicUsize = AtomicUsize::new(3); // Number of top-ranked traces to try fixing in each iteration
 
-pub const SAMPLE_ITERATIONS: AtomicUsize = AtomicUsize::new(2);
+pub static SAMPLE_ITERATIONS: AtomicUsize = AtomicUsize::new(2);
 
-pub const UPDATE_PROBA_SKIP_STRIDE: AtomicUsize = AtomicUsize::new(2); // Number of traces to skip when updating the probability
+pub static UPDATE_PROBA_SKIP_STRIDE: AtomicUsize = AtomicUsize::new(2); // Number of traces to skip when updating the probability
+
+pub static NUM_BAYESIAN_PATH_FINDING_CALLS: AtomicUsize = AtomicUsize::new(0);
+pub static NUM_NAIVE_PATH_FINDING_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 pub const LAYER_TO_TRACE_COLOR: [ColorFloat3; 6] = [
     ColorFloat3::new(1.0, 0.0, 0.0), // Red for front layer
@@ -51,8 +54,7 @@ pub fn astar_stride_from_raw(raw_stride: f64) -> FixedPoint{
 }
 
 lazy_static! {
-    pub static ref SAMPLE_CNT: AtomicUsize = AtomicUsize::new(0); // Global counter for the number of samples taken
-    pub static ref ASTAR_STRIDE: Mutex<FixedPoint> = {
+        pub static ref ASTAR_STRIDE: Mutex<FixedPoint> = {
         let raw_stride: f64 = 2.00;
         Mutex::new(astar_stride_from_raw(raw_stride))
     }; // A* search stride

@@ -9,7 +9,7 @@ fn main() {
     mount_to_body(|| {
         view! {
             <Router>
-                <App/>
+                <App />
             </Router>
         }
     })

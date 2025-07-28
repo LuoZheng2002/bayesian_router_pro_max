@@ -39,6 +39,8 @@ pub fn run() {
             view_stats,
             save_result,
             get_settings,
+            set_settings,
+            get_stats,
         ])
         .on_window_event(|window, window_event| {
             use tauri::WindowEvent;

@@ -181,17 +181,18 @@ pub fn PcbPage() -> impl IntoView {
     };
 
     let on_view_stats = move |_| {
-        spawn_local(async move {
-            let result: MyResult<(), String> = invoke("view_stats", ()).await;
-            match result {
-                MyResult::Ok(_) => {
-                    web_sys::console::log_1(&"View Stats command executed successfully".into());
-                },
-                MyResult::Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to execute View Stats command: {}", e).into());
-                }
-            }
-        });
+        navigate("/stats", Default::default());
+        // spawn_local(async move {
+        //     let result: MyResult<(), String> = invoke("view_stats", ()).await;
+        //     match result {
+        //         MyResult::Ok(_) => {
+        //             web_sys::console::log_1(&"View Stats command executed successfully".into());
+        //         },
+        //         MyResult::Err(e) => {
+        //             web_sys::console::error_1(&format!("Failed to execute View Stats command: {}", e).into());
+        //         }
+        //     }
+        // });
     };
 
     let on_save_result = move |_| {
@@ -213,27 +214,54 @@ pub fn PcbPage() -> impl IntoView {
         <div class="flex h-screen">
             // <!-- Left: Canvas -->
             <div class="flex-1 flex items-center justify-center bg-gray-100">
-                <canvas id="my-canvas" node_ref=canvas_ref class="border border-black w-[80vw] h-[80vh]"></canvas>
+                <canvas
+                    id="my-canvas"
+                    node_ref=canvas_ref
+                    class="border border-black w-[80vw] h-[80vh]"
+                ></canvas>
             </div>
 
             // <!-- Right: Column of buttons -->
             <div class="w-48 flex flex-col items-center justify-center space-y-4 bg-gray-200 p-4">
-                <button on:click=on_start_pause class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                    on:click=on_start_pause
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                     {app_state3.start_pause_str}
                 </button>
-                <button on:click=on_step_in disabled=app_state3.step_in_disabled class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                    on:click=on_step_in
+                    disabled=app_state3.step_in_disabled
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                     "Step In"
                 </button>
-                <button on:click=on_step_over disabled=app_state3.step_over_disabled class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                    on:click=on_step_over
+                    disabled=app_state3.step_over_disabled
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                     "Step Over"
                 </button>
-                <button on:click=on_step_out disabled=app_state3.step_out_disabled class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                    on:click=on_step_out
+                    disabled=app_state3.step_out_disabled
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                     "Step Out"
                 </button>
-                <button on:click=on_view_stats disabled=app_state3.view_stats_disabled class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                    on:click=on_view_stats
+                    disabled=app_state3.view_stats_disabled
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                     "View Stats"
                 </button>
-                <button on:click=on_save_result disabled=app_state3.save_result_disabled class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                    on:click=on_save_result
+                    disabled=app_state3.save_result_disabled
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                     "Save Result"
                 </button>
             </div>

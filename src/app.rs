@@ -128,31 +128,22 @@ pub fn App() -> impl IntoView {
     );
 
 
-    view! {    
-    <div id="root">
-        <main>
-          // <Routes/> both defines our routes and shows them on the page
-          <Routes fallback=|| "Not found.">
-              // users like /gbj or /bob
-              <Route
-                path=path!("/")
-                view=HomePage
-              />
-              <Route
-                path=path!("/pcb")
-                view=PcbPage
-              />
-              <Route
-                path=path!("/settings")
-                view=SettingsPage
-              />
-              // a fallback if the /:id segment is missing from the URL
-              <Route
-                path=path!("")
-                view=move || view! { <p class="contact">"Select a contact."</p> }
-              />
-          </Routes>
-        </main>
-    </div>
-  }
+    view! {
+        <div id="root">
+            <main>
+                // <Routes/> both defines our routes and shows them on the page
+                <Routes fallback=|| "Not found.">
+                    // users like /gbj or /bob
+                    <Route path=path!("/") view=HomePage />
+                    <Route path=path!("/pcb") view=PcbPage />
+                    <Route path=path!("/settings") view=SettingsPage />
+                    // a fallback if the /:id segment is missing from the URL
+                    <Route
+                        path=path!("")
+                        view=move || view! { <p class="contact">"Select a contact."</p> }
+                    />
+                </Routes>
+            </main>
+        </div>
+    }
 }

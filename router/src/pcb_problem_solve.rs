@@ -1,6 +1,6 @@
 use std::sync::{atomic::Ordering, Arc, Mutex};
 
-use shared::{hyperparameters::SAMPLE_CNT, pcb_problem::{ConnectionID, PcbProblem, PcbSolution}, pcb_render_model::PcbRenderModel};
+use shared::{pcb_problem::{ConnectionID, PcbProblem, PcbSolution}, pcb_render_model::PcbRenderModel};
 
 use crate::{bayesian_backtrack_algo::{bayesian_backtrack, TraceCache}, display_injection::{self, DisplayInjection}, naive_backtrack_algo::naive_backtrack};
 
@@ -27,7 +27,7 @@ pub fn solve_pcb_problem(
     match result{
         Ok(solution) => {
             println!("PCB problem solved successfully");
-            println!("Sample Count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
+            // println!("Sample Count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
             if solution.determined_traces.len() < connections.len() {
                 let err_msg = format!(
                     "Not all connections were solved. Expected: {}, Found: {}",
@@ -41,7 +41,7 @@ pub fn solve_pcb_problem(
         }
         Err(e) => {
             println!("Failed to solve PCB problem: {}", e);
-            println!("Sample Count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
+            // println!("Sample Count: {}", SAMPLE_CNT.load(Ordering::SeqCst));
             Err(e)
         }
     }

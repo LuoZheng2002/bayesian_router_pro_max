@@ -15,15 +15,18 @@ pub static USE_BAYESIAN: AtomicBool = AtomicBool::new(true);
 pub static SUBMISSION_INTERVAL_MILLIS: AtomicUsize = AtomicUsize::new(300);
 pub static SES_STRING: Mutex<Option<String>> = Mutex::new(None);
 
-lazy_static!{
-    pub static ref ALGORITHM_THREAD_HANDLE: Mutex<Option<AlgorithmThreadHandle>> = Mutex::new(None);
-    pub static ref APP_HANDLE: Mutex<Option<AppHandle>> = Mutex::new(None);
-}
-
+pub static TOTAL_LENGTH: Mutex<f64> = Mutex::new(0.0);
+pub static NUM_VIAS: Mutex<usize> = Mutex::new(0);
+pub static TIME_ELAPSED: Mutex<f64> = Mutex::new(0.0);
 
 
 
 pub static COMMAND_MUTEX: Mutex<()> = Mutex::new(());
 pub static COMMAND_CV: Condvar = Condvar::new();
+
+lazy_static!{
+    pub static ref ALGORITHM_THREAD_HANDLE: Mutex<Option<AlgorithmThreadHandle>> = Mutex::new(None);
+    pub static ref APP_HANDLE: Mutex<Option<AppHandle>> = Mutex::new(None);
+}
 
 
