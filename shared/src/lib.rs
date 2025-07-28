@@ -11,3 +11,4 @@ pub mod trace_path;
 pub mod vec2;
 pub mod octile_distance;
 pub mod my_result;
+pub mod settings_enum;

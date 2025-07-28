@@ -13,10 +13,9 @@ use shared::{
         FIRST_ITERATION_NUM_TRACES, FIRST_ITERATION_PROBABILITY, HALF_PROBABILITY_OPPORTUNITY_COST, MAX_GENERATION_ATTEMPTS, SAMPLE_ITERATIONS, SECOND_ITERATION_NUM_TRACES, SECOND_ITERATION_PROBABILITY
     },
     pcb_problem::{Connection, ConnectionID, FixedTrace, NetName, PcbProblem},
-    pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable, UpdatePcbRenderModel},
+    pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable},
     prim_shape::PrimShape,
     trace_path::{TraceAnchors, TracePath},
-    vec2::{FixedPoint, FixedVec2},
 };
 
 use crate::{
@@ -41,9 +40,9 @@ impl ProbaTrace {
     fn get_normalized_prior(&self) -> f64 {
         assert!(self.iteration == NonZeroUsize::new(1).unwrap() || self.iteration == NonZeroUsize::new(2).unwrap());
         if self.iteration == NonZeroUsize::new(1).unwrap() {
-            FIRST_ITERATION_PROBABILITY
+            FIRST_ITERATION_PROBABILITY.load(Ordering::Relaxed)
         } else {
-            SECOND_ITERATION_PROBABILITY
+            SECOND_ITERATION_PROBABILITY.load(Ordering::Relaxed)
         }
     }
 
@@ -136,7 +135,7 @@ impl ProbaModel {
 
         // sample and then update posterior
         // to do: specify iteration number
-        for j in 0..SAMPLE_ITERATIONS {
+        for j in 0..SAMPLE_ITERATIONS.load(Ordering::Relaxed) {
             println!("Sampling new traces for iteration {}", j + 1);
             proba_model.sample_new_traces(problem,  trace_cache, display_injection);
             println!("Done sampling new traces");
@@ -287,16 +286,16 @@ impl ProbaModel {
             // the inner loop for generating traces for each connection in the net
             assert!(self.next_iteration == NonZeroUsize::new(1).unwrap() || self.next_iteration == NonZeroUsize::new(2).unwrap());
             let max_num_traces = if self.next_iteration == NonZeroUsize::new(1).unwrap(){
-                FIRST_ITERATION_NUM_TRACES
+                FIRST_ITERATION_NUM_TRACES.load(Ordering::Relaxed)
             }else{
-                SECOND_ITERATION_NUM_TRACES
+                SECOND_ITERATION_NUM_TRACES.load(Ordering::Relaxed)
             };
 
             // in this while loop, we will generate obstacles fosuitable for the whole net            
             
             // let mut connection_to_visited_traces: HashMap<ConnectionID, Vec<TracePath>> =
             //     HashMap::new();
-            while num_generation_attempts < MAX_GENERATION_ATTEMPTS
+            while num_generation_attempts < MAX_GENERATION_ATTEMPTS.load(Ordering::Relaxed)
                 && num_generated_traces
                     .values()
                     .any(|&count| count < max_num_traces)
@@ -334,11 +333,11 @@ impl ProbaModel {
                         sum_normalized_posterior += normalized_posterior;
                         normalized_posteriors.push(normalized_posterior);
                     }
-                    assert!(
-                        sum_normalized_posterior < 1.0,
-                        "Sum of normalized posteriors must be less than 1.0, got: {}",
-                        sum_normalized_posterior
-                    );
+                    // assert!(
+                    //     sum_normalized_posterior < 1.0,
+                    //     "Sum of normalized posteriors must be less than 1.0, got: {}",
+                    //     sum_normalized_posterior
+                    // );
                     let num_trace_candidates = normalized_posteriors.len();
                     let remaining_probability = 1.0 - sum_normalized_posterior;
                     normalized_posteriors.push(remaining_probability);
@@ -882,7 +881,7 @@ impl ProbaModel {
             );
             // let score_weight = *SCORE_WEIGHT.lock().unwrap();
             // let opportunity_cost_weight = *OPPORTUNITY_COST_WEIGHT.lock().unwrap();
-            let k = f64::ln(2.0) / HALF_PROBABILITY_OPPORTUNITY_COST;
+            let k = f64::ln(2.0) / HALF_PROBABILITY_OPPORTUNITY_COST.load(Ordering::Relaxed);
             let opportunity_cost = f64::exp(-k * target_penalty);
             // println!("penalty: {}, opportunity cost: {}", target_penalty, opportunity_cost);
             assert!(

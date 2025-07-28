@@ -172,14 +172,14 @@ pub fn bayesian_backtrack(
             display_when_necessary(node, pcb_problem, CommandFlag::ProbaModelResult, display_injection);
         };
         let new_node =
-            top_node.try_fix_top_k_ranked_trace(display_and_block_closure, NUM_TOP_RANKED_TO_TRY);
+            top_node.try_fix_top_k_ranked_trace(display_and_block_closure, NUM_TOP_RANKED_TO_TRY.load(Ordering::Relaxed));
         if new_node.is_some(){
             println!(
                 "Successfully fixed the top ranked trace, pushing new node onto the stack"
             );
             // assert!(new_node.prob_up_to_date, "New node must be up to date");
             let mut new_node = new_node.unwrap();
-            if node_stack.len() % UPDATE_PROBA_SKIP_STRIDE == 0 {
+            if node_stack.len() % UPDATE_PROBA_SKIP_STRIDE.load(Ordering::Relaxed) == 0 {
                 let result = new_node.try_update_proba_model(pcb_problem, trace_cache, display_injection);
                 if let Err(err) = result {
                     println!("Failed to update the probabilistic model: {}", err);

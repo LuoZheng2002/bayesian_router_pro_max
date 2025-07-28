@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::atomic::Ordering};
 
 use crate::{
     collider::Collider,
@@ -622,7 +622,7 @@ impl TracePath {
     pub fn get_score(&self) -> f64 {
         // to do
         let score_raw = self.total_length; // placeholder for actual score calculation
-        let k = f64::ln(2.0) / HALF_PROBABILITY_RAW_SCORE;
+        let k = f64::ln(2.0) / HALF_PROBABILITY_RAW_SCORE.load(Ordering::Relaxed);
         let score = f64::exp(-k * score_raw);
         // println!("total length: {}, score: {}", self.total_length, score);
         assert!(
