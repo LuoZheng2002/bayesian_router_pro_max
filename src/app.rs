@@ -137,6 +137,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/") view=HomePage />
                     <Route path=path!("/pcb") view=PcbPage />
                     <Route path=path!("/settings") view=SettingsPage />
+                    <Route path=path!("/stats") view=crate::stats_page::StatsPage />
                     // a fallback if the /:id segment is missing from the URL
                     <Route
                         path=path!("")

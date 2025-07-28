@@ -6,6 +6,12 @@ pub struct StatsArgs{
     pub stat: String,
 }
 
+impl StatsArgs {
+    pub fn new(stat: String) -> Self {
+        StatsArgs { stat }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StatsEnum{
     Float(f64),

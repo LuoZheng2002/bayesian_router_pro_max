@@ -6,7 +6,7 @@ use shared::stats_enum::StatsEnum;
 use shared::{my_result::MyResult, settings_enum::SettingsEnum};
 use tauri::Emitter;
 
-use crate::global::{APP_HANDLE, COMMAND_CV, NUM_BAYESIAN_PATH_FINDING_CALLS, NUM_NAIVE_PATH_FINDING_CALLS, NUM_VIAS, TIME_ELAPSED, TOTAL_LENGTH, USE_BAYESIAN};
+use crate::global::{APP_HANDLE, COMMAND_CV, NUM_VIAS, TIME_ELAPSED, TOTAL_LENGTH, USE_BAYESIAN};
 
 
 
@@ -299,6 +299,7 @@ pub fn set_settings(setting: &str, value: SettingsEnum) -> MyResult<(),String>{
 
 #[tauri::command]
 pub fn get_stats(stat: &str) -> StatsEnum{
+    println!("get_stats called for stat: {}", stat);
     match stat{
         "total_length" => {
             let total_length = TOTAL_LENGTH.lock().unwrap().clone();
@@ -313,11 +314,11 @@ pub fn get_stats(stat: &str) -> StatsEnum{
             StatsEnum::Float(time_elapsed)
         },
         "num_bayesian_path_finding_calls" => {
-            let num_bayesian_path_finding_calls = NUM_BAYESIAN_PATH_FINDING_CALLS.lock().unwrap().clone();
+            let num_bayesian_path_finding_calls = NUM_BAYESIAN_PATH_FINDING_CALLS.load(Ordering::Relaxed);
             StatsEnum::Usize(num_bayesian_path_finding_calls)
         },
         "num_naive_path_finding_calls" => {
-            let num_naive_path_finding_calls = NUM_NAIVE_PATH_FINDING_CALLS.lock().unwrap().clone();
+            let num_naive_path_finding_calls = NUM_NAIVE_PATH_FINDING_CALLS.load(Ordering::Relaxed);
             StatsEnum::Usize(num_naive_path_finding_calls)
         },
         _ => panic!("Unknown stat: {}", stat),
