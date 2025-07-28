@@ -2,7 +2,7 @@ use fixed::traits::Fixed;
 // use crate::block_or_sleep::{block_or_sleep, block_thread};
 use shared::{
     binary_heap_item::BinaryHeapItem,
-    hyperparameters::{ASTAR_STRIDE, DISPLAY_OPTIMIZATION, OPTIMIZATION_PRO},
+    hyperparameters::{ASTAR_STRIDE},
     pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable, UpdatePcbRenderModel},
     prim_shape::{CircleShape, PrimShape, RectangleShape},
     trace_path::{Direction, TraceAnchor, TraceAnchors, TracePath, TraceSegment, Via},

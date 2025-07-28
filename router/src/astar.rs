@@ -17,7 +17,7 @@ use crate::{
 use shared::{
     binary_heap_item::BinaryHeapItem,
     collider::{BorderCollider, Collider},
-    hyperparameters::{ASTAR_STRIDE, ESTIMATE_COEFFICIENT, MAX_TRIALS, SAMPLE_CNT, VIA_COST},
+    hyperparameters::{ASTAR_STRIDE, MAX_TRIALS, SAMPLE_CNT, VIA_COST},
     octile_distance::octile_distance_fixed,
     pad::PadLayer,
     pcb_render_model::{
@@ -1127,7 +1127,7 @@ impl AStarModel {
             BinaryHeap::new();
 
         let start_estimated_cost =
-            octile_distance_fixed(self.start, self.end) * ESTIMATE_COEFFICIENT;
+            octile_distance_fixed(self.start, self.end);
         for layer in self.start_layers.get_iter(self.num_layers) {
             let start_node = AstarNode {
                 position: self.start,
@@ -1211,7 +1211,7 @@ impl AStarModel {
             // don't consider visited nodes as trials
             trial_count += 1;
             if trial_count > MAX_TRIALS {
-                self.display_when_necessary(&frontier, CommandFlag::Auto, display_injection);
+                // self.display_when_necessary(&frontier, CommandFlag::Auto, display_injection);
                 return Err("A* search exceeded maximum trials".to_string());
             }
             visited.insert(current_key.clone());
@@ -1256,7 +1256,7 @@ impl AStarModel {
                     let actual_cost = current_node.actual_cost + length + via_cost;
                     let actual_length = current_node.actual_length + length;
                     let estimated_cost =
-                        octile_distance_fixed(end_position, self.end) * ESTIMATE_COEFFICIENT;
+                        octile_distance_fixed(end_position, self.end);
                     let total_cost = actual_cost + estimated_cost;
                     let new_node = AstarNode {
                         position: end_position,
@@ -1574,7 +1574,7 @@ impl AStarModel {
                 display_injection,
             ); // display the initial state of the frontier
         }
-        self.display_when_necessary(&frontier, CommandFlag::Auto, display_injection);
+        // self.display_when_necessary(&frontier, CommandFlag::Auto, display_injection);
         Err("No path found".to_string()) // no path found
     }
 }

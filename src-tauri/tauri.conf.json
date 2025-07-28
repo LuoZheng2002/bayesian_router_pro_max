@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "test_desktop",
+  "productName": "bayesian_router_pro_max",
   "version": "0.1.0",
   "identifier": "com.test_desktop.app",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "test_desktop",
+        "title": "Bayesian Router Pro Max",
         "width": 800,
         "height": 600
       }
@@ -26,10 +26,6 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
       "icons/icon.ico"
     ]
   }

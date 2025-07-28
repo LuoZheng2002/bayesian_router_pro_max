@@ -72,10 +72,14 @@ pub fn run() {
                 match event.id().0.as_str() {
                     "open" => {
                         open_file(app_handle.clone());
-                    }
+                    },
                     "quit" => {
                         println!("quit event");
                         app_handle.exit(0);
+                    },
+                    "settings" =>{
+                        println!("settings event");
+                        app_handle.emit("string-event", ("navigate", "settings")).unwrap();
                     }
                     _ => {
                         println!("unexpected menu event");

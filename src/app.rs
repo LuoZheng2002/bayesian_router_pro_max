@@ -14,12 +14,6 @@ use crate::settings_page::SettingsPage;
 use tauri_sys::{event};
 use futures::StreamExt;
 
-// #[wasm_bindgen]
-// extern "C" {
-//     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-//     pub async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-// }
-
 #[derive(Serialize, Deserialize)]
 struct GreetArgs<'a> {
     name: &'a str,
@@ -34,8 +28,6 @@ pub fn App() -> impl IntoView {
   provide_context(AppState::new());
 
   let app_state = use_context::<AppState>().expect("AppState context not found");
-
-  let (message, set_message) = signal("Hello world".to_string());
 
     // Listen for events
     spawn_local(async move {
@@ -138,10 +130,6 @@ pub fn App() -> impl IntoView {
 
     view! {    
     <div id="root">
-      <div>{message}</div>
-      // we wrap the whole app in a <Router/> to allow client-side navigation
-      // from our nav links below      
-      // <Router>
         <main>
           // <Routes/> both defines our routes and shows them on the page
           <Routes fallback=|| "Not found.">
@@ -165,7 +153,6 @@ pub fn App() -> impl IntoView {
               />
           </Routes>
         </main>
-      // </Router>
     </div>
   }
 }

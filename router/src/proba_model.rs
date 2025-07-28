@@ -10,7 +10,7 @@ use rand::distr::{Distribution, weighted::WeightedIndex};
 use shared::{
     collider::Collider,
     hyperparameters::{
-        CONSTANT_LEARNING_RATE, HALF_PROBABILITY_OPPORTUNITY_COST, ITERATION_TO_NUM_TRACES, ITERATION_TO_PRIOR_PROBABILITY, LINEAR_LEARNING_RATE, MAX_GENERATION_ATTEMPTS, NEXT_ITERATION_TO_REMAINING_PROBABILITY, OPPORTUNITY_COST_WEIGHT, SAMPLE_CNT, SAMPLE_ITERATIONS, SCORE_WEIGHT
+        FIRST_ITERATION_NUM_TRACES, FIRST_ITERATION_PROBABILITY, HALF_PROBABILITY_OPPORTUNITY_COST, MAX_GENERATION_ATTEMPTS, SAMPLE_ITERATIONS, SECOND_ITERATION_NUM_TRACES, SECOND_ITERATION_PROBABILITY
     },
     pcb_problem::{Connection, ConnectionID, FixedTrace, NetName, PcbProblem},
     pcb_render_model::{PcbRenderModel, RenderableBatch, ShapeRenderable, UpdatePcbRenderModel},
@@ -39,9 +39,12 @@ pub struct ProbaTrace {
 
 impl ProbaTrace {
     fn get_normalized_prior(&self) -> f64 {
-        *ITERATION_TO_PRIOR_PROBABILITY
-            .get(&self.iteration)
-            .expect(format!("No prior probability for iteration {:?}", self.iteration).as_str())
+        assert!(self.iteration == NonZeroUsize::new(1).unwrap() || self.iteration == NonZeroUsize::new(2).unwrap());
+        if self.iteration == NonZeroUsize::new(1).unwrap() {
+            FIRST_ITERATION_PROBABILITY
+        } else {
+            SECOND_ITERATION_PROBABILITY
+        }
     }
 
     pub fn get_posterior_with_fallback(&self) -> f64 {
@@ -216,17 +219,17 @@ impl ProbaModel {
                     let posterior = proba_trace.get_posterior_with_fallback();
                     sum_posterior += posterior;
                 }
-                let remaining_probability = *NEXT_ITERATION_TO_REMAINING_PROBABILITY
-                    .get(&self.next_iteration)
-                    .expect(
-                        format!(
-                            "No remaining probability for iteration {:?}",
-                            self.next_iteration
-                        )
-                        .as_str(),
-                    );
-                assert_ne!(remaining_probability, 0.0);
-                sum_posterior += remaining_probability;
+                // let remaining_probability = *NEXT_ITERATION_TO_REMAINING_PROBABILITY
+                //     .get(&self.next_iteration)
+                //     .expect(
+                //         format!(
+                //             "No remaining probability for iteration {:?}",
+                //             self.next_iteration
+                //         )
+                //         .as_str(),
+                //     );
+                // assert_ne!(remaining_probability, 0.0);
+                // sum_posterior += remaining_probability;
 
                 // normalize the posterior for each trace
                 // divide each posterior by the sum of all posteriors
@@ -282,13 +285,12 @@ impl ProbaModel {
             // initialize the number of generation attempts
             let mut num_generation_attempts: usize = 0;
             // the inner loop for generating traces for each connection in the net
-            let max_num_traces = *ITERATION_TO_NUM_TRACES.get(&self.next_iteration).expect(
-                format!(
-                    "No number of traces for iteration {:?}",
-                    self.next_iteration
-                )
-                .as_str(),
-            );
+            assert!(self.next_iteration == NonZeroUsize::new(1).unwrap() || self.next_iteration == NonZeroUsize::new(2).unwrap());
+            let max_num_traces = if self.next_iteration == NonZeroUsize::new(1).unwrap(){
+                FIRST_ITERATION_NUM_TRACES
+            }else{
+                SECOND_ITERATION_NUM_TRACES
+            };
 
             // in this while loop, we will generate obstacles fosuitable for the whole net            
             

@@ -1,4 +1,3 @@
-use shared::hyperparameters::DISPLAY_PERIOD_MILLIS;
 
 // pub fn block_or_sleep() {
 //     if BLOCK_THREAD {
