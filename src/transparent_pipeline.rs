@@ -116,9 +116,9 @@ impl TransparentPipeline {
     ) -> wgpu::RenderPass<'a> {
         let load_ops = if clear_color {
             wgpu::LoadOp::Clear(wgpu::Color {
-                r: 0.1,
-                g: 0.2,
-                b: 0.3,
+                r: 173.0 / 255.0,
+                g: 216.0 / 255.0,
+                b: 230.0 / 255.0, // Light blue color
                 a: 1.0,
             })
         } else {

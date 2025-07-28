@@ -74,7 +74,7 @@ impl RenderContext {
         //     .find(|f| f.is_srgb())
         //     .copied()
         //     .unwrap_or(surface_caps.formats[0]);
-        let surface_format = wgpu::TextureFormat::Rgba8UnormSrgb;
+        let surface_format = wgpu::TextureFormat::Bgra8Unorm;
         // define how the surface creates its underlying SurfaceTextures
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -128,6 +128,7 @@ impl RenderContext {
         let square_mesh = create_square_mesh(&device);
         let circle_mesh = create_circle_mesh(&device, 32);
         let line_mesh = create_line_mesh(&device);
+        surface.configure(&device, &config);
         RenderContext {
             surface,
             device,

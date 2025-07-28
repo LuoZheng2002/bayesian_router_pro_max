@@ -84,15 +84,17 @@ fn display_when_necessary(
     pcb_problem: &PcbProblem,
     display_injection: &mut DisplayInjection,
 ) {
+    // println!("In naive backtrack's display_when_necessary");
     let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
     let task_command_level = CommandFlag::ProbaModelResult.get_level();
     if target_command_level <= task_command_level {
         let render_model = node_to_pcb_render_model(pcb_problem, node);
         while !(display_injection.can_submit_render_model)() {
             // wait until we can submit the render model
-        }            
+        }
         (display_injection.submit_render_model)(render_model);
-        (display_injection.block_until_signal)();        
+        (display_injection.block_until_signal)();
+        // println!("Successfully submitted render model");
     } else {
         if (display_injection.can_submit_render_model)() {
             // If we can submit the render model, do it
@@ -106,6 +108,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
     heuristics: Option<Vec<ConnectionID>>,
     display_injection: &mut DisplayInjection,
 ) -> Result<PcbSolution, String> {
+    println!("Inside naive backtrack");
     // prepare the obstacles for the first A* run    
     let border_colliders = AStarModel::calculate_border_colliders(problem.width, problem.height, problem.center);
         
@@ -114,7 +117,14 @@ pub fn naive_backtrack(problem: &PcbProblem,
         let quad_tree_x_max = problem.center.x as f32 + quad_tree_side_length / 2.0;
         let quad_tree_y_min = problem.center.y as f32 - quad_tree_side_length / 2.0;
         let quad_tree_y_max = problem.center.y as f32 + quad_tree_side_length / 2.0;
-    
+
+    let dummy_top_node = NaiveBacktrackNode{
+        current_connection: None,
+        alternative_connections: VecDeque::new(),
+        fixed_connections: HashMap::new(),
+        failed_connections: Vec::new(),
+    };
+    display_when_necessary(&dummy_top_node, problem, display_injection);
     let ordered_connection_vec = if let Some(heuristics) = heuristics {
         heuristics
     } else {        

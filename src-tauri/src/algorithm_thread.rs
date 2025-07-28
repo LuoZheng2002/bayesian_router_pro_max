@@ -62,6 +62,7 @@ pub fn algorithm_thread(
     };
     println!("Ready to solve PCB problem");
     block_until_signal();
+    // std::thread::sleep(std::time::Duration::from_millis(100)); // Give time for the UI to update
 
     let use_bayesian = crate::global::USE_BAYESIAN.load(Ordering::Relaxed); 
     let result = solve_pcb_problem(&pcb_problem, use_bayesian, &mut display_injection);

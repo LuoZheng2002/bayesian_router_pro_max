@@ -21,6 +21,7 @@ wgpu = "25.0.2"
 bytemuck = "1.23.1"
 shared={path="shared"}
 cgmath = "0.18.0"
+leptos-use = "0.16.2"
 
 [workspace]
 members = [ "parser", "router", "shared","src-tauri"]

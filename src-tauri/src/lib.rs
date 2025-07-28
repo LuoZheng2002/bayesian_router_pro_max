@@ -11,7 +11,7 @@ use tauri::{image::Image, menu::{CheckMenuItemBuilder, IconMenuItemBuilder, Menu
 use tauri_plugin_dialog::{DialogExt, FilePath, MessageDialogButtons};
 
 use crate::{global::{APP_HANDLE, PROGRAM_SHOULD_EXIT}, handle_file_open::open_file};
-
+use crate::commands::*;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -20,11 +20,25 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    
+
+    std::thread::spawn(
+        ||{
+            submission_cooldown_thread::submission_cooldown_thread();
+        }
+    );
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())        
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            start_pause_click,
+            step_in,
+            step_out,
+            step_over,
+            view_stats,
+            save_result,
+        ])
         .on_window_event(|window, window_event| {
             use tauri::WindowEvent;
             if let WindowEvent::CloseRequested { api, .. } = window_event {
