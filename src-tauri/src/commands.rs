@@ -5,8 +5,10 @@ use shared::hyperparameters::*;
 use shared::stats_enum::StatsEnum;
 use shared::{my_result::MyResult, settings_enum::SettingsEnum};
 use tauri::Emitter;
+use tauri_plugin_dialog::{DialogExt, FilePath};
 
-use crate::global::{APP_HANDLE, COMMAND_CV, NUM_VIAS, TIME_ELAPSED, TOTAL_LENGTH, USE_BAYESIAN};
+use crate::global::{APP_HANDLE, COMMAND_CV, NUM_VIAS, SES_STRING, TIME_ELAPSED, TOTAL_LENGTH, USE_BAYESIAN};
+use crate::handle_file_open;
 
 
 
@@ -18,15 +20,16 @@ pub fn step_in()->MyResult<(), String> {
         println!("new command level is below 0, resetting to 0");
     }
     COMMAND_CV.notify_all();
-
+    let app_handle = {
+        let global_app_handle = APP_HANDLE.lock().unwrap();
+        global_app_handle.clone().unwrap()
+    };
     
     if old_command_level == 1 || old_command_level == 0{
-        let app_handle = {
-            let global_app_handle = APP_HANDLE.lock().unwrap();
-            global_app_handle.clone().unwrap()
-        };
-        app_handle.emit("string-event", ("disable", "step-in")).unwrap();
-    }    
+        
+        app_handle.emit("string-event", ("disable".to_string(), "step-in".to_string())).unwrap();
+    }
+    app_handle.emit("string-event", ("start-pause".to_string(), "pause".to_string())).unwrap();
     MyResult::Ok(())
 }
 
@@ -43,8 +46,9 @@ pub fn step_out()->MyResult<(), String> {
             let global_app_handle = APP_HANDLE.lock().unwrap();
             global_app_handle.clone().unwrap()
         };
-        app_handle.emit("string-event", ("disable", "step-out")).unwrap();
-    }    
+        app_handle.emit("string-event", ("disable".to_string(), "step-out".to_string())).unwrap();
+        app_handle.emit("string-event", ("start-pause".to_string(), "start".to_string())).unwrap();
+    }
     MyResult::Ok(())
 }
 
@@ -60,13 +64,40 @@ pub fn view_stats()->MyResult<(), String> {
         let global_app_handle = APP_HANDLE.lock().unwrap();
         global_app_handle.clone().unwrap()
     };
-    app_handle.emit("string-event", ("disable", "step-out")).unwrap();
+    app_handle.emit("string-event", ("disable".to_string(), "step-out".to_string())).unwrap();
     MyResult::Ok(())
 }
 
 #[tauri::command]
 pub fn save_result()->MyResult<(), String> {
-    MyResult::Ok(())
+    let app_handle = {
+        let global_app_handle = APP_HANDLE.lock().unwrap();
+        global_app_handle.clone().unwrap()
+    };
+    let ses_content = SES_STRING.lock().unwrap().clone();
+    let ses_content = match ses_content {
+        Some(content) => content,
+        None => {
+            return MyResult::Err("No SES content to save".to_string());
+        }
+    };
+    let file_path = app_handle
+        .dialog()
+        .file()
+        .add_filter("specctra session file", &["ses"])
+        .blocking_save_file();
+    // If the user canceled the dialog, just return Ok
+    let Some(path) = file_path else {
+        return MyResult::Ok(());
+    };
+    let FilePath::Path(path) = path else {
+        return MyResult::Err("Url is not supported".to_string());
+    };
+    // Attempt to write the result data to the selected file
+    match std::fs::write(&path, ses_content){
+        Ok(_) => MyResult::Ok(()),
+        Err(e) => MyResult::Err(format!("Failed to write file: {}", e)),
+    }
 }
 
 #[tauri::command]
@@ -79,13 +110,17 @@ pub fn start_pause() -> MyResult<(), String>{
     if current_command_level == 4{
         // current is starting, so we pause
         TARGET_COMMAND_LEVEL.store(0, Ordering::Relaxed);
-        app_handle.emit("string-event", ("start-pause", "pause")).unwrap();
+        app_handle.emit("string-event", ("start-pause".to_string(), "pause".to_string())).unwrap();
+        app_handle.emit("string-event", ("enable".to_string(), "step-out".to_string())).unwrap();
+        app_handle.emit("string-event", ("disable".to_string(), "step-in".to_string())).unwrap();
         println!("Pausing algorithm");
     }else{
         // current is paused, so we start
         TARGET_COMMAND_LEVEL.store(4, Ordering::Relaxed);
         println!("Starting algorithm");
-        app_handle.emit("string-event", ("start-pause", "start")).unwrap();
+        app_handle.emit("string-event", ("start-pause".to_string(), "start".to_string())).unwrap();
+        app_handle.emit("string-event", ("disable".to_string(), "step-out".to_string())).unwrap();
+        app_handle.emit("string-event", ("enable".to_string(), "step-in".to_string())).unwrap();
         COMMAND_CV.notify_all();
     }    
     MyResult::Ok(())
@@ -323,4 +358,9 @@ pub fn get_stats(stat: &str) -> StatsEnum{
         },
         _ => panic!("Unknown stat: {}", stat),
     }
+}
+
+#[tauri::command]
+pub fn open_file()->MyResult<(), String>{
+    handle_file_open::open_file()
 }

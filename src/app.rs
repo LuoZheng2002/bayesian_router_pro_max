@@ -106,6 +106,10 @@ pub fn App() -> impl IntoView {
               app_state.start_pause_str.set("Start".into());
               println!("Setting start_pause_str to Start");
             },
+            ("hint-message", hint_message) =>{
+              web_sys::console::log_1(&format!("Setting hint message: {}", hint_message).into());
+              app_state.hint_message.set(hint_message.to_string());
+            },
             _=>{
               web_sys::console::log_1(&format!("Unknown navigation event: {}, {}", event.payload.0, event.payload.1).into());
             }

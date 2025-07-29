@@ -300,6 +300,7 @@ impl ProbaModel {
                     .values()
                     .any(|&count| count < max_num_traces)
             {
+                let mut failed_connections: HashSet<ConnectionID> = HashSet::new();
                 // println!("Generation attempt: {}", num_generation_attempts + 1);
                 num_generation_attempts += 1;
                 let mut sampled_obstacle_traces: HashMap<ConnectionID, Option<ProbaTraceID>> =
@@ -522,6 +523,10 @@ impl ProbaModel {
                     .collect();
 
                 for (connection_id, connection) in connections.iter() {
+                    if failed_connections.contains(connection_id) {
+                        println!("ConnectionID {:?} already failed, skipping", connection_id);
+                        continue; // Skip this connection if it already failed
+                    }
                     let connection_num_generated_traces =
                         *num_generated_traces.get(connection_id).expect(
                             format!(
@@ -629,6 +634,7 @@ impl ProbaModel {
                             Ok(result) => result,
                             Err(err) => {
                                 println!("A* algorithm failed: {}", err);
+                                failed_connections.insert(*connection_id);
                                 continue; // Skip this connection if A* fails
                             }
                         };

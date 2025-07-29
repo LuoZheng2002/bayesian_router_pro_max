@@ -84,6 +84,7 @@ fn display_when_necessary(
     pcb_problem: &PcbProblem,
     command_flag: CommandFlag,
     display_injection: &mut DisplayInjection,
+    fall_through: bool,
 ) {
     if display_injection.stop_requested.load(Ordering::Relaxed) {
         println!("Stop requested, not displaying node");
@@ -99,7 +100,9 @@ fn display_when_necessary(
             // wait until we can submit the render model
         }
         (display_injection.submit_render_model)(render_model);
-        (display_injection.block_until_signal)();
+        if !fall_through {
+            (display_injection.block_until_signal)();
+        }
         // println!("Successfully submitted render model");
     } else {
         if (display_injection.can_submit_render_model)() {
@@ -128,13 +131,13 @@ pub fn naive_backtrack(problem: &PcbProblem,
         let quad_tree_y_min = problem.center.y as f32 - quad_tree_side_length / 2.0;
         let quad_tree_y_max = problem.center.y as f32 + quad_tree_side_length / 2.0;
 
-    let dummy_top_node = NaiveBacktrackNode{
-        current_connection: None,
-        alternative_connections: VecDeque::new(),
-        fixed_connections: HashMap::new(),
-        failed_connections: Vec::new(),
-    };
-    display_when_necessary(&dummy_top_node, problem, CommandFlag::ProbaModelResult, display_injection);
+    // let dummy_top_node = NaiveBacktrackNode{
+    //     current_connection: None,
+    //     alternative_connections: VecDeque::new(),
+    //     fixed_connections: HashMap::new(),
+    //     failed_connections: Vec::new(),
+    // };
+    // display_when_necessary(&dummy_top_node, problem, CommandFlag::ProbaModelResult, display_injection, false);
     let ordered_connection_vec = if let Some(heuristics) = heuristics {
         heuristics
     } else {        
@@ -322,7 +325,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
         print_top_node(top_node);
         assert!(top_node.current_connection.is_none());
 
-        display_when_necessary(&top_node, &problem, CommandFlag::ProbaModelResult, display_injection);
+        display_when_necessary(&top_node, &problem, CommandFlag::ProbaModelResult, display_injection, false);
         if top_node.alternative_connections.is_empty() {
             if !top_node.failed_connections.is_empty() {
                 println!("No more alternative connections but have failed connections, fail to solve");
@@ -341,7 +344,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
                 scale_down_factor: problem.scale_down_factor,
             };
             println!("Successfully solved PCB problem using naive backtrack");
-            display_when_necessary(&top_node, &problem, CommandFlag::Auto, display_injection);
+            display_when_necessary(&top_node, &problem, CommandFlag::Auto, display_injection, true);
             return Ok(pcb_solution);
         }
         // select the next connection

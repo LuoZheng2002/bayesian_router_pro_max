@@ -41,6 +41,7 @@ pub fn run() {
             get_settings,
             set_settings,
             get_stats,
+            open_file,
         ])
         .on_window_event(|window, window_event| {
             use tauri::WindowEvent;
@@ -49,6 +50,10 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            {
+                let mut global_app_handle = crate::global::APP_HANDLE.lock().unwrap();
+                *global_app_handle = Some(app.handle().clone());
+            }
             let file_menu = SubmenuBuilder::new(app, "File")
                 .text("open", "Open")
                 .text("quit", "Quit")
@@ -66,15 +71,11 @@ pub fn run() {
 
 
             app.on_menu_event(move |app_handle: &tauri::AppHandle, event| {
-                {
-                    let mut global_app_handle = APP_HANDLE.lock().unwrap();
-                    *global_app_handle = Some(app_handle.clone());
-                }
                 println!("menu event: {:?}", event.id());
 
                 match event.id().0.as_str() {
                     "open" => {
-                        open_file(app_handle.clone());
+                        open_file();
                     },
                     "quit" => {
                         println!("quit event");

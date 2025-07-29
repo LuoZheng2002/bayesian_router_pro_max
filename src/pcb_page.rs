@@ -20,6 +20,10 @@ pub fn PcbPage() -> impl IntoView {
     let app_state = use_context::<AppState>().expect("AppState context not found");
     let app_state2 = app_state.clone();
     let app_state3 = app_state.clone();
+    let app_state4 = app_state.clone();
+    let app_state5 = app_state.clone();
+
+    // let (hint_msg, set_hint_msg) = signal("This is a hint message".to_string());
 
 
     // let on_settings_clicked = move |_| {
@@ -78,6 +82,8 @@ pub fn PcbPage() -> impl IntoView {
                 spawn_local(async move {
                     // let render_context = RenderContext::create(&canvas).await;
                     let temp_render_context = RenderContext::create(&canvas).await;
+
+                    temp_render_context.resize((800, 600));
                     set_render_context.set(Rc::new(RefCell::new(Some(temp_render_context))));
                     let closure_wrapper: Rc<RefCell<Option<Box<dyn FnMut()>>>> = Rc::new(RefCell::new(None));
                     let closure_wrapper_clone = closure_wrapper.clone();
@@ -196,13 +202,16 @@ pub fn PcbPage() -> impl IntoView {
     };
 
     let on_save_result = move |_| {
+        let app_state4 = app_state4.clone();
         spawn_local(async move {
             let result: MyResult<(), String> = invoke("save_result", ()).await;
             match result {
                 MyResult::Ok(_) => {
+                    app_state4.hint_message.set("Saved Successfully".to_string());
                     web_sys::console::log_1(&"Save Result command executed successfully".into());
                 },
                 MyResult::Err(e) => {
+                    app_state4.hint_message.set(format!("Failed to save result: {}", e));
                     web_sys::console::error_1(&format!("Failed to execute Save Result command: {}", e).into());
                 }
             }
@@ -264,6 +273,26 @@ pub fn PcbPage() -> impl IntoView {
                 >
                     "Save Result"
                 </button>
+            </div>
+            <div
+                class="fixed bottom-1 left-1/2 transform -translate-x-1/2 z-50 flex items-start gap-3 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md animate-fade-in"
+                role="alert"
+            >
+                <svg
+                    class="w-6 h-6 text-red-500 mt-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z"
+                    />
+                </svg>
+                <span class="text-sm font-medium">{app_state5.hint_message}</span>
             </div>
         </div>
     }

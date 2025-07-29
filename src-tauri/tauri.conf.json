@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "bayesian_router_pro_max",
+  "productName": "Bayesian Router Pro Max",
   "version": "0.1.0",
-  "identifier": "com.test_desktop.app",
+  "identifier": "com.bayesian-router-pro-max.app",
   "build": {
     "beforeDevCommand": "trunk serve",
     "devUrl": "http://localhost:1420",

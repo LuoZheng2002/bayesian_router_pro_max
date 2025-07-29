@@ -19,6 +19,8 @@ pub static TOTAL_LENGTH: Mutex<f64> = Mutex::new(0.0);
 pub static NUM_VIAS: Mutex<usize> = Mutex::new(0);
 pub static TIME_ELAPSED: Mutex<f64> = Mutex::new(0.0);
 
+pub static CLEANUP_EMIT_CALLS: Mutex<Option<Box<dyn Fn(&AppHandle) + Send>>> = Mutex::new(None);
+
 
 
 pub static COMMAND_MUTEX: Mutex<()> = Mutex::new(());

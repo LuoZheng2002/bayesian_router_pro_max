@@ -14,6 +14,7 @@ pub struct AppState {
     pub view_stats_disabled: ArcRwSignal<bool>,
     pub save_result_disabled: ArcRwSignal<bool>,
     pub start_pause_str: ArcRwSignal<String>,
+    pub hint_message: ArcRwSignal<String>,
 }
 
 impl AppState{
@@ -27,6 +28,7 @@ impl AppState{
             view_stats_disabled: ArcRwSignal::new(false),
             save_result_disabled: ArcRwSignal::new(false),
             start_pause_str: ArcRwSignal::new("Start".into()),
+            hint_message: ArcRwSignal::new("This is a hint message".into()),
         }
     }
 }

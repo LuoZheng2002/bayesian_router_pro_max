@@ -1,15 +1,16 @@
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
 
 use router::command_flags::TARGET_COMMAND_LEVEL;
+use shared::my_result::MyResult;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
-use crate::{algorithm_thread, global::{ALGORITHM_THREAD_HANDLE, COMMAND_CV}};
+use crate::{algorithm_thread, global::{ALGORITHM_THREAD_HANDLE, APP_HANDLE, COMMAND_CV}};
 
 
 
 
-pub fn open_file(app_handle: AppHandle) {
+pub fn open_file()->MyResult<(), String> {
     // Handle the file open event
     println!("open event");
     // let randomize_algorithm = app_handle
@@ -20,33 +21,38 @@ pub fn open_file(app_handle: AppHandle) {
     //         "随机化".to_string(),
     //         "不随机化".to_string(),
     //     ))
-    //     .blocking_show();
-    let file_path = app_handle
+    //     .blocking_show();        
+    let (file_path, file_content) = {
+        let app_handle = crate::global::APP_HANDLE.lock().unwrap();
+        let app_handle = app_handle.clone().unwrap();
+        let file_path = app_handle
         .dialog()
         .file()
         .blocking_pick_file();
-    let file_path = match file_path {
-        Some(path) => path,
-        None => {
-            println!("No file selected");
-            return;
-        }
-    };
-    let file_path = match file_path{
-        FilePath::Path(path) => path,
-        FilePath::Url(_url) => {
-            println!("URL files are not supported");
-            return;
-        }
-    };
-    let file_content = match std::fs::read_to_string(file_path.clone()) {
-        Ok(content) => content,
-        Err(err) => {
-            println!("Failed to read file: {}", err);
-            return;
-        }
+        let file_path = match file_path {
+            Some(path) => path,
+            None => {
+                println!("No file selected");
+                return MyResult::Err("No file selected".to_string());
+            }
+        };
+        let file_path = match file_path{
+            FilePath::Path(path) => path,
+            FilePath::Url(_url) => {
+                println!("URL files are not supported");
+                return MyResult::Err("URL files are not supported".to_string());
+            }
+        };
+        let file_content = match std::fs::read_to_string(file_path.clone()) {
+            Ok(content) => content,
+            Err(err) => {
+                println!("Failed to read file: {}", err);
+                return MyResult::Err(format!("Failed to read file: {}", err));
+            }
+        };   
+        app_handle.emit("string-event", ("navigate".to_string(), "pcb".to_string())).unwrap();
+        (file_path, file_content)
     };    
-    app_handle.emit("string-event", ("navigate".to_string(), "pcb".to_string())).unwrap();
     println!("Emitted string-event with payload: navigate pcb");
     let mut algorithm_thread_handle = ALGORITHM_THREAD_HANDLE.lock().unwrap();
     if let Some(handle) = &mut *algorithm_thread_handle {
@@ -68,10 +74,19 @@ pub fn open_file(app_handle: AppHandle) {
     });
     // disable step in, step out, step over buttons
     TARGET_COMMAND_LEVEL.store(0, Ordering::Relaxed);
+    println!("Initializing buttons");
+    // std::thread::sleep(std::time::Duration::from_millis(2000));
+    let app_handle = {
+        let app_handle = APP_HANDLE.lock().unwrap();
+        app_handle.clone().unwrap()
+    };
     app_handle.emit("string-event", ("start-pause".to_string(), "pause".to_string())).unwrap();
-    app_handle.emit("string-event", ("disable", "step-in")).unwrap();
-    app_handle.emit("string-event", ("enable", "step-over")).unwrap();
-    app_handle.emit("string-event", ("enable", "step-out")).unwrap();
-    app_handle.emit("string-event", ("disable", "view-stats")).unwrap();
-    app_handle.emit("string-event", ("disable", "save-result")).unwrap();
+    app_handle.emit("string-event", ("disable".to_string(), "step-in".to_string())).unwrap();
+    app_handle.emit("string-event", ("enable".to_string(), "step-over".to_string())).unwrap();
+    println!("At the middle of initializing buttons");
+    app_handle.emit("string-event", ("enable".to_string(), "step-out".to_string())).unwrap();
+    // app_handle.emit("string-event", ("disable".to_string(), "view-stats".to_string())).unwrap();
+    // app_handle.emit("string-event", ("disable".to_string(), "save-result".to_string())).unwrap();
+    println!("Finished initializing buttons");
+    MyResult::Ok(())
 }

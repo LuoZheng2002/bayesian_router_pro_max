@@ -107,6 +107,7 @@ pub fn bayesian_backtrack(
         pcb_problem: &PcbProblem,
         command_flag: CommandFlag,
         display_injection: &mut DisplayInjection,
+        fall_through: bool, 
     ) {
         if display_injection.stop_requested.load(Ordering::Relaxed) {
             println!("Stop requested, not displaying node");
@@ -121,7 +122,9 @@ pub fn bayesian_backtrack(
                 // wait until we can submit the render model
             }            
             (display_injection.submit_render_model)(render_model);
-            (display_injection.block_until_signal)();        
+            if !fall_through{
+                (display_injection.block_until_signal)();        
+            }
         } else {
             if (display_injection.can_submit_render_model)() {
                 // If we can submit the render model, do it
@@ -149,6 +152,7 @@ pub fn bayesian_backtrack(
             pcb_problem,
             CommandFlag::ProbaModelResult,
             display_injection,
+            false,
         );
         let top_node = node_stack.last_mut().unwrap();
         if top_node.is_solution(pcb_problem) {
@@ -163,13 +167,13 @@ pub fn bayesian_backtrack(
             // println!("Successfully found a solution with sample count {}", shared::hyperparameters::SAMPLE_CNT.load(Ordering::SeqCst));
             
 
-            display_when_necessary(top_node, pcb_problem, CommandFlag::Auto, display_injection);
+            display_when_necessary(top_node, pcb_problem, CommandFlag::Auto, display_injection, true);
             // heuristics = Some(top_node.fix_sequence.clone());
             // break; // break the loop to return the solution
             return Ok(solution);
         }
         let display_and_block_closure = |node: &BacktrackNode| {
-            display_when_necessary(node, pcb_problem, CommandFlag::ProbaModelResult, display_injection);
+            display_when_necessary(node, pcb_problem, CommandFlag::ProbaModelResult, display_injection, false);
         };
         let new_node =
             top_node.try_fix_top_k_ranked_trace(display_and_block_closure, NUM_TOP_RANKED_TO_TRY.load(Ordering::Relaxed));
