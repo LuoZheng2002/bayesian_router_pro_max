@@ -214,6 +214,7 @@ impl ProbaModel {
         for (_, traces) in self.connection_to_traces.iter() {
             if let Traces::Probabilistic(trace_ids) = traces {
                 let mut sum_posterior: f64 = 0.0;
+                let num_traces = trace_ids.len();
                 for (_, proba_trace) in trace_ids.iter() {
                     let posterior = proba_trace.get_posterior_with_fallback();
                     sum_posterior += posterior;
@@ -228,10 +229,13 @@ impl ProbaModel {
                 //         .as_str(),
                 //     );
                 // assert_ne!(remaining_probability, 0.0);
+                // let remaining_probability = 0.5;
+                sum_posterior = sum_posterior * (num_traces + 1) as f64 / num_traces as f64;
                 // sum_posterior += remaining_probability;
 
                 // normalize the posterior for each trace
                 // divide each posterior by the sum of all posteriors
+
                 for (proba_trace_id, proba_trace) in trace_ids.iter() {
                     let posterior = proba_trace.get_posterior_with_fallback();
                     assert!(!posterior.is_nan(), "Posterior is NaN for trace ID {:?}", proba_trace_id);
@@ -793,6 +797,24 @@ impl ProbaModel {
         let mut trace_shape_renderables: Vec<RenderableBatch> = Vec::new();
         let mut pad_shape_renderables: Vec<ShapeRenderable> = Vec::new();
         let mut other_shape_renderables: Vec<ShapeRenderable> = Vec::new();
+        let mut min_probability = f64::INFINITY;
+        let mut max_probability = f64::NEG_INFINITY;
+        for (_, net_info) in problem.nets.iter() {
+            for (_, connection) in net_info.connections.iter() {
+                if let Some(Traces::Probabilistic(trace_map)) =
+                    self.connection_to_traces.get(&connection.connection_id)
+                {
+                    for proba_trace in trace_map.values() {
+                        let posterior = proba_trace.get_posterior_with_fallback();
+                        min_probability = min_probability.min(posterior);
+                        max_probability = max_probability.max(posterior);
+                    }
+                }
+            }
+        }
+
+
+
         for (_, net_info) in problem.nets.iter() {
             // add all pads in a net
             let net_color_solid = net_info.color.to_float4(1.0);
@@ -819,7 +841,10 @@ impl ProbaModel {
                     for proba_trace in trace_map.values() {
                         let posterior = proba_trace.get_posterior_with_fallback();
                         let posterior = posterior.clamp(0.0, 1.0); // Ensure posterior is between 0 and 1
-                        let color = net_info.color.to_float4(posterior as f32);
+                        let mut normalized_alpha = (posterior - min_probability) / (max_probability - min_probability);
+                        normalized_alpha = normalized_alpha.clamp(0.0, 1.0); // Ensure alpha is between 0 and 1
+                        normalized_alpha = 0.5 + 0.5 * normalized_alpha; // Scale to [0.5, 1.0]
+                        let color = net_info.color.to_float4(normalized_alpha as f32);
                         let renderable_batches = proba_trace.trace_path.to_renderables(color);
                         trace_shape_renderables.extend(renderable_batches);
                     }

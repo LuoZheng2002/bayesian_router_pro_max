@@ -30,6 +30,7 @@ pub fn step_in()->MyResult<(), String> {
         app_handle.emit("string-event", ("disable".to_string(), "step-in".to_string())).unwrap();
     }
     app_handle.emit("string-event", ("start-pause".to_string(), "pause".to_string())).unwrap();
+    app_handle.emit("string-event", ("enable".to_string(), "step-out".to_string())).unwrap();
     MyResult::Ok(())
 }
 
@@ -41,14 +42,15 @@ pub fn step_out()->MyResult<(), String> {
         TARGET_COMMAND_LEVEL.store(4, Ordering::SeqCst);
     }
     COMMAND_CV.notify_all();
-    if old_command_level == 3 || old_command_level == 4{
-        let app_handle = {
+    let app_handle = {
             let global_app_handle = APP_HANDLE.lock().unwrap();
             global_app_handle.clone().unwrap()
         };
+    if old_command_level == 3 || old_command_level == 4{        
         app_handle.emit("string-event", ("disable".to_string(), "step-out".to_string())).unwrap();
         app_handle.emit("string-event", ("start-pause".to_string(), "start".to_string())).unwrap();
     }
+    app_handle.emit("string-event", ("enable".to_string(), "step-in".to_string())).unwrap();
     MyResult::Ok(())
 }
 
