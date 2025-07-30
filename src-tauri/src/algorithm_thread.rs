@@ -49,14 +49,14 @@ pub fn render_pcb(problem: &PcbProblem) -> PcbRenderModel{
 
 pub fn cleanup(){
     let emit_calls = |app_handle: &AppHandle|{
-        println!("Resetting buttons");
+        // println!("Resetting buttons");
         app_handle.emit("string-event", ("enable".to_string(), "save-result".to_string())).unwrap();
         app_handle.emit("string-event", ("enable".to_string(), "view-stats".to_string())).unwrap();
         app_handle.emit("string-event", ("start-pause".to_string(), "pause".to_string())).unwrap();
         app_handle.emit("string-event", ("disable".to_string(), "step-in".to_string())).unwrap();
         app_handle.emit("string-event", ("disable".to_string(), "step-out".to_string())).unwrap();
         app_handle.emit("string-event", ("disable".to_string(), "step-over".to_string())).unwrap();
-        println!("Finished resetting buttons");
+        // println!("Finished resetting buttons");
     };
     let mut cleanup_emit_calls = crate::global::CLEANUP_EMIT_CALLS.lock().unwrap();
     *cleanup_emit_calls = Some(Box::new(emit_calls));    
@@ -140,6 +140,8 @@ pub fn algorithm_thread(
         Err(e) => {
             println!("Failed to solve PCB problem: {}", e);
             println!("Exiting algorithm thread due to solve error");
+            app_handle.emit("string-event", ("hint-message".to_string(), "Failed to solve PCB problem".to_string())).unwrap();
+            
             cleanup();
             return;
         }

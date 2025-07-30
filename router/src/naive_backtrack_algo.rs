@@ -121,7 +121,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
         println!("Stop requested, not running naive backtrack");
         return Err("Stop requested".to_string());
     }
-    println!("Inside naive backtrack");
+    // println!("Inside naive backtrack");
     // prepare the obstacles for the first A* run    
     let border_colliders = AStarModel::calculate_border_colliders(problem.width, problem.height, problem.center);
         
@@ -301,18 +301,18 @@ pub fn naive_backtrack(problem: &PcbProblem,
         .collect();
 
     // dfs
-    fn print_top_node(top_node: &NaiveBacktrackNode) {
-        print!("Top node: fixed_connections: ");
-        for connection_id in top_node.fixed_connections.keys() {
-            print!("{},", connection_id.0);
-        }
-        print!("current connection: {:?}, ", top_node.current_connection);
-        print!("alternative connections: ");
-        for connection_id in top_node.alternative_connections.iter() {
-            print!("{},", connection_id.0);
-        }
-        println!();
-    }
+    // fn print_top_node(top_node: &NaiveBacktrackNode) {
+    //     print!("Top node: fixed_connections: ");
+    //     for connection_id in top_node.fixed_connections.keys() {
+    //         print!("{},", connection_id.0);
+    //     }
+    //     print!("current connection: {:?}, ", top_node.current_connection);
+    //     print!("alternative connections: ");
+    //     for connection_id in top_node.alternative_connections.iter() {
+    //         print!("{},", connection_id.0);
+    //     }
+    //     println!();
+    // }
 
     while !backtrack_stack.is_empty() {
         if display_injection.stop_requested.load(Ordering::Relaxed) {
@@ -322,7 +322,7 @@ pub fn naive_backtrack(problem: &PcbProblem,
         // Get the top node from the stack
         
         let top_node = backtrack_stack.last_mut().unwrap();
-        print_top_node(top_node);
+        // print_top_node(top_node);
         assert!(top_node.current_connection.is_none());
 
         display_when_necessary(&top_node, &problem, CommandFlag::ProbaModelResult, display_injection, false);

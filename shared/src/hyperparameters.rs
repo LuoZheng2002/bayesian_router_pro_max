@@ -21,7 +21,7 @@ pub static SECOND_ITERATION_NUM_TRACES: AtomicUsize = AtomicUsize::new(3);
 // pub const BLOCK_THREAD: bool = true; // Whether to block the thread when waiting for a trace to be generated
 // pub const DISPLAY_ASTAR: bool = true; // Whether to display the A* search process
 
-pub static ASTAR_MAX_EXPANSIONS: AtomicUsize = AtomicUsize::new(1000); // Maximum number of trials to find a trace
+pub static ASTAR_MAX_EXPANSIONS: AtomicUsize = AtomicUsize::new(3000); // Maximum number of trials to find a trace
 
 pub static VIA_COST: AtomicF64 = AtomicF64::new(5.0); // Cost of placing a via
 

@@ -5,7 +5,7 @@ use shared::{my_result::MyResult, settings_enum::{GetSettingsArg, SetSettingsArg
 use tauri_sys::core::invoke;
 
 // use bayesian inference    bool
-// astar max expansions     usize >=1 recommended 1000     
+// astar max expansions     usize >=1 recommended      
 // astar stride f32 >= 0.01, recommended 1.27
 // trace score causing probability halved   f64 >=0.1  recommended 10
 // opportunity cost causing probability halved  f64 >= 0.1 recommended 0.5
@@ -148,7 +148,7 @@ pub fn SettingsPage() -> impl IntoView {
                             <label class="block text-sm font-medium text-gray-700">
                                 "A* Max Expansions"
                             </label>
-                            <label class="block text-sm text-gray-500">"Recommended: 1000"</label>
+                            <label class="block text-sm text-gray-500">"Recommended: 3000"</label>
                             <input
                                 value=astar_max_expansions
                                 on:change=move |ev| {

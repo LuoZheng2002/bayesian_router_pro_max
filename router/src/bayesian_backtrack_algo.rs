@@ -47,24 +47,24 @@ pub fn bayesian_backtrack(
         panic!("No updated node found in the stack");
     }
 
-    fn print_current_stack(node_stack: &Vec<BacktrackNode>) {
-        println!("Current stack: num_items: {}", node_stack.len());
-        for (index, node) in node_stack.iter().enumerate() {
-            println!(
-                "\tNode {}: up_to_date: {}, num fixed traces: {}, num remaining trace candidates: {}, ",
-                index,
-                node.prob_up_to_date,
-                node.fixed_traces.len(),
-                node.remaining_trace_candidates.len()
-            );
-            // for fixed_trace in node.fixed_traces.values() {
-            //     println!(
-            //         "\t\tFixed trace: net_name: {}, connection_id: {}",
-            //         fixed_trace.net_name.0, fixed_trace.connection_id.0
-            //     );
-            // }
-        }
-    }
+    // fn print_current_stack(node_stack: &Vec<BacktrackNode>) {
+    //     println!("Current stack: num_items: {}", node_stack.len());
+    //     for (index, node) in node_stack.iter().enumerate() {
+    //         println!(
+    //             "\tNode {}: up_to_date: {}, num fixed traces: {}, num remaining trace candidates: {}, ",
+    //             index,
+    //             node.prob_up_to_date,
+    //             node.fixed_traces.len(),
+    //             node.remaining_trace_candidates.len()
+    //         );
+    //         // for fixed_trace in node.fixed_traces.values() {
+    //         //     println!(
+    //         //         "\t\tFixed trace: net_name: {}, connection_id: {}",
+    //         //         fixed_trace.net_name.0, fixed_trace.connection_id.0
+    //         //     );
+    //         // }
+    //     }
+    // }
 
     fn node_to_pcb_render_model(problem: &PcbProblem, node: &BacktrackNode) -> PcbRenderModel {
         let mut trace_shape_renderables: Vec<RenderableBatch> = Vec::new();
@@ -113,7 +113,7 @@ pub fn bayesian_backtrack(
             println!("Stop requested, not displaying node");
             return;
         }
-        println!("Displaying node in bayesian backtrack");
+        // println!("Displaying node in bayesian backtrack");
         let target_command_level = TARGET_COMMAND_LEVEL.load(Ordering::Relaxed);
         let task_command_level = command_flag.get_level();
         if target_command_level <= task_command_level {

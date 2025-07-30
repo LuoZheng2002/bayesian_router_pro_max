@@ -376,19 +376,6 @@ impl AStarModel {
             //     "old position: {:?}, new position: {:?}, dx: {}, dy: {}, direction: TopLeft",
             //     position, top_left_grid_point, top_left_grid_point.x - position.x, top_left_grid_point.y - position.y);
             if !Direction::is_two_points_valid_direction(position, top_left_grid_point) {
-                println!(
-                    "Invalid TopLeft direction: old position: {:?}, new position: {:?}, dx: {}, dy: {}, direction: TopLeft",
-                    position,
-                    top_left_grid_point,
-                    top_left_grid_point.x - position.x,
-                    top_left_grid_point.y - position.y
-                );
-                println!(
-                    "x % ASTAR_STRIDE: {}, y % ASTAR_STRIDE: {}",
-                    position.x.rem_euclid(astar_stride).to_bits(),
-                    position.y.rem_euclid(astar_stride).to_bits()
-                );
-                println!("ASTAR_STRIDE: {}", astar_stride.to_bits());
                 panic!("Invalid TopLeft direction");
             }
             assert!(Direction::is_two_points_valid_direction(
@@ -1175,21 +1162,9 @@ impl AStarModel {
                     |start: FixedVec2, end: FixedVec2, width: f32, clearance: f32, layer: usize| {
                         self.check_collision_for_trace(start, end, width, clearance, layer)
                     };
-                // let check_collision_for_via =
-                //     |position: FixedVec2, diameter: f32, clearance: f32, min_layer: usize, max_layer: usize| {
-                //         for layer in min_layer..=max_layer {
-                //             if self.check_collision_for_via(position, diameter, clearance, layer) {
-                //                 return true; // collision found
-                //             }
-                //         }
-                //         false
-                //     };
+               
                 
-                print!("Trace path directions:");
-                for segment in trace_path.segments.iter() {
-                    print!(" {:?}", segment.get_direction());                     
-                }
-                println!();
+                
                 self.display_final_trace(&trace_path, CommandFlag::AstarInOut, display_injection);         
                 let trace_path = optimize_path(
                     &trace_path,
@@ -1199,7 +1174,7 @@ impl AStarModel {
                     self.trace_clearance,
                     self.via_diameter,
                 );    
-                println!("Finished one iteration of optimization");
+                // println!("Finished one iteration of optimization");
                 self.display_final_trace(&trace_path, CommandFlag::AstarInOut, display_injection);                
                 return Ok(AStarResult { trace_path });
             }
@@ -1224,7 +1199,7 @@ impl AStarModel {
             // new:
             // hoist the closure out of the directions loop for the aligned_with_end condition
             let mut try_push_node_to_frontier =
-                |direction: AStarNodeDirection, end_position: FixedVec2, end_layer: usize| {
+                |direction: AStarNodeDirection, end_position: FixedVec2, end_layer: usize| -> Option<Rc<AstarNode>> {
                     assert!(
                         !matches!(direction, AStarNodeDirection::None),
                         "Direction should not be None"
@@ -1248,7 +1223,7 @@ impl AStarModel {
                     };
                     // check if the new position is already visited
                     if visited.contains(&astar_node_key) {
-                        return;
+                        return None;
                     }
                     // let length: f64 = (direction.to_fixed_vec2().length() * length).to_num();
                     let length: f64 = (end_position - current_node.position).length().to_num();
@@ -1272,11 +1247,14 @@ impl AStarModel {
                         total_cost,
                         prev_node: Some(current_node.clone()), // link to the previous node
                     };
+                    let new_node = Rc::new(new_node);
+                    let return_value = Some(new_node.clone());
                     // push directly to the frontier
                     frontier.push(BinaryHeapItem {
                         key: Reverse(NotNan::new(new_node.total_cost).unwrap()), // use Reverse to make it a min heap
-                        value: Rc::new(new_node),
+                        value: new_node,
                     });
+                    return_value
                 };
 
             assert!(
@@ -1294,13 +1272,16 @@ impl AStarModel {
             let end_direction = self.is_aligned_with_end(current_node.position, current_node.layer);
             if let Some(end_direction) = end_direction {
                 assert_ne!(current_node.position, self.end, "assert 3");
-                if !self.check_collision_for_trace(
+                if 
+                !self.check_collision_for_trace(
                     current_node.position,
                     self.end,
                     self.trace_width,
                     self.trace_clearance,
                     current_node.layer,
-                ) {
+                ) 
+                {
+                    println!("Directly succeed");
                     // println!(
                     //     "is_aligned_with_end: ({}, {}) ({}, {})",
                     //     current_node.position.x, current_node.position.y, self.end.x, self.end.y
@@ -1310,11 +1291,46 @@ impl AStarModel {
                             == end_direction
                     );
                     condition_count = condition_count + 1;
-                    try_push_node_to_frontier(
+                    let end_node = try_push_node_to_frontier(
                         AStarNodeDirection::Planar(end_direction),
                         self.end,
                         current_node.layer,
                     );
+                    let end_node = end_node.unwrap();
+
+                    // to do: directly success
+
+                    self.display_when_necessary(
+                        &frontier,
+                        CommandFlag::AstarInOut,
+                        display_injection,
+                    ); // display the initial state of the frontier
+
+                    // Reached the end node, construct the trace path
+                    let trace_path = end_node.to_trace_path(
+                        self.trace_width,
+                        self.trace_clearance,
+                        self.via_diameter,
+                    );
+                    let check_collision_for_trace =
+                        |start: FixedVec2, end: FixedVec2, width: f32, clearance: f32, layer: usize| {
+                            self.check_collision_for_trace(start, end, width, clearance, layer)
+                        };                    
+                    self.display_final_trace(&trace_path, CommandFlag::AstarInOut, display_injection);         
+                    let trace_path = optimize_path(
+                        &trace_path,
+                        &check_collision_for_trace,
+                        self.trace_width,
+                        self.trace_clearance,
+                        self.via_diameter,
+                    );    
+                    // println!("Finished one iteration of optimization");
+                    self.display_final_trace(&trace_path, CommandFlag::AstarInOut, display_injection);                
+                    return Ok(AStarResult { trace_path });
+
+
+
+
                     // println!("Successfully pushed an end node to the frontier");
                 }else{
                     // println!("Although a node is aligned with end, collision. Direction: {:?}", end_direction);
@@ -1589,6 +1605,8 @@ pub struct AstarNodeKey {
     pub layer: usize,
 }
 
+
+#[derive(Debug, Clone)]
 pub struct AstarNode {
     pub position: FixedVec2,
     pub layer: usize,
