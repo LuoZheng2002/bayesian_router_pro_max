@@ -1,4 +1,4 @@
-use std::{sync::{atomic::{AtomicBool, AtomicUsize}, Condvar, Mutex}, thread::JoinHandle};
+use std::{collections::HashMap, sync::{atomic::{AtomicBool, AtomicUsize}, Condvar, Mutex}, thread::JoinHandle};
 
 use lazy_static::lazy_static;
 use tauri::AppHandle;
@@ -29,6 +29,13 @@ pub static COMMAND_CV: Condvar = Condvar::new();
 lazy_static!{
     pub static ref ALGORITHM_THREAD_HANDLE: Mutex<Option<AlgorithmThreadHandle>> = Mutex::new(None);
     pub static ref APP_HANDLE: Mutex<Option<AppHandle>> = Mutex::new(None);
+    pub static ref DEMO_FILE_NAME_TO_CONTENT: Mutex<HashMap<String, String>> = {
+        let mut map = HashMap::new();
+        map.insert("digistump.dsn".to_string(), include_str!("../../examples/digistump.dsn").to_string());
+        map.insert("echo.dsn".to_string(), include_str!("../../examples/echo.dsn").to_string());
+        map.insert("music.dsn".to_string(), include_str!("../../examples/music.dsn").to_string());
+        map.insert("ping.dsn".to_string(), include_str!("../../examples/ping.dsn").to_string());
+        map.insert("differential.dsn".to_string(), include_str!("../../examples/differential.dsn").to_string());
+        Mutex::new(map)
+    };    
 }
-
-

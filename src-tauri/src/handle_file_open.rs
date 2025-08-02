@@ -1,4 +1,4 @@
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
+use std::{path::PathBuf, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}};
 
 use router::command_flags::TARGET_COMMAND_LEVEL;
 use shared::my_result::MyResult;
@@ -10,7 +10,7 @@ use crate::{algorithm_thread, global::{ALGORITHM_THREAD_HANDLE, APP_HANDLE, COMM
 
 
 
-pub fn open_file()->MyResult<(), String> {
+pub fn open_file(demo_file_name: Option<String>)->MyResult<(), String> {
     // Handle the file open event
     println!("open event");
     // let randomize_algorithm = app_handle
@@ -22,9 +22,22 @@ pub fn open_file()->MyResult<(), String> {
     //         "不随机化".to_string(),
     //     ))
     //     .blocking_show();        
-    let (file_path, file_content) = {
-        let app_handle = crate::global::APP_HANDLE.lock().unwrap();
-        let app_handle = app_handle.clone().unwrap();
+    let app_handle = {
+        let app_handle = APP_HANDLE.lock().unwrap();
+        app_handle.clone().unwrap()
+    };
+    let (file_path, file_content) = if let Some(demo_file_name) = demo_file_name 
+    {
+        let file_path = PathBuf::from(demo_file_name);
+        let file_content = {
+            let demo_file_name_to_content = crate::global::DEMO_FILE_NAME_TO_CONTENT.lock().unwrap();
+            match demo_file_name_to_content.get(&file_path.to_string_lossy().to_string()) {
+                Some(content) => content.clone(),
+                None => return MyResult::Err("Demo file not found".to_string()),
+            }
+        };
+        (file_path, file_content)
+    }else   {
         let file_path = app_handle
         .dialog()
         .file()
@@ -49,10 +62,10 @@ pub fn open_file()->MyResult<(), String> {
                 println!("Failed to read file: {}", err);
                 return MyResult::Err(format!("Failed to read file: {}", err));
             }
-        };   
-        app_handle.emit("string-event", ("navigate".to_string(), "pcb".to_string())).unwrap();
+        };           
         (file_path, file_content)
     };    
+    app_handle.emit("string-event", ("navigate".to_string(), "pcb".to_string())).unwrap();
     println!("Emitted string-event with payload: navigate pcb");
     let mut algorithm_thread_handle = ALGORITHM_THREAD_HANDLE.lock().unwrap();
     if let Some(handle) = &mut *algorithm_thread_handle {

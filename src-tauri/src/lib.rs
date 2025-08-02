@@ -10,7 +10,7 @@ use std::path::Path;
 use tauri::{image::Image, menu::{CheckMenuItemBuilder, IconMenuItemBuilder, Menu, MenuBuilder, SubmenuBuilder}, Emitter};
 use tauri_plugin_dialog::{DialogExt, FilePath, MessageDialogButtons};
 
-use crate::{global::{APP_HANDLE, PROGRAM_SHOULD_EXIT}, handle_file_open::open_file};
+use crate::{global::{APP_HANDLE, PROGRAM_SHOULD_EXIT}};
 use crate::commands::*;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -54,14 +54,27 @@ pub fn run() {
                 let mut global_app_handle = crate::global::APP_HANDLE.lock().unwrap();
                 *global_app_handle = Some(app.handle().clone());
             }
+
+             let examples_menu = SubmenuBuilder::new(app, "Examples")
+                .text("digistump_dsn", "digistump.dsn")
+                .text("echo_dsn", "echo.dsn")
+                .text("music_dsn", "music.dsn")
+                .text("ping_dsn", "ping.dsn")
+                .text("differential_dsn", "differential.dsn")
+                .build()?;
+
+
             let file_menu = SubmenuBuilder::new(app, "File")
-                .text("open", "Open")
+                .text("open", "Open")                
+                .item(&examples_menu)
                 .text("quit", "Quit")
                 .build()?;
 
             let settings_menu = SubmenuBuilder::new(app, "Settings")
                 .text("settings", "Settings")
                 .build()?;
+
+           
             
             let menu = MenuBuilder::new(app)
                 .items(&[&file_menu, &settings_menu])
@@ -75,7 +88,7 @@ pub fn run() {
 
                 match event.id().0.as_str() {
                     "open" => {
-                        open_file();
+                        handle_file_open::open_file(None);
                     },
                     "quit" => {
                         println!("quit event");
@@ -85,6 +98,21 @@ pub fn run() {
                         println!("settings event");
                         app_handle.emit("string-event", ("navigate", "settings")).unwrap();
                     }
+                    "digistump_dsn" => {
+                        handle_file_open::open_file(Some("digistump.dsn".to_string()));
+                    },
+                    "echo_dsn" => {
+                        handle_file_open::open_file(Some("echo.dsn".to_string()));
+                    },
+                    "music_dsn" => {
+                        handle_file_open::open_file(Some("music.dsn".to_string()));
+                    },
+                    "ping_dsn" => {
+                        handle_file_open::open_file(Some("ping.dsn".to_string()));
+                    },
+                    "differential_dsn" => {
+                        handle_file_open::open_file(Some("differential.dsn".to_string()));
+                    },
                     _ => {
                         println!("unexpected menu event");
                     }

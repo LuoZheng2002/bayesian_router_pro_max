@@ -62,6 +62,7 @@ pub fn cleanup(){
     *cleanup_emit_calls = Some(Box::new(emit_calls));    
 }
 
+
 pub fn algorithm_thread(
     file_path: PathBuf,
     file_content: String, 

@@ -338,5 +338,5 @@ pub fn get_stats(stat: &str) -> StatsEnum{
 
 #[tauri::command]
 pub fn open_file()->MyResult<(), String>{
-    handle_file_open::open_file()
+    handle_file_open::open_file(None)
 }

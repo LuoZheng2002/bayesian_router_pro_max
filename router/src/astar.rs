@@ -910,7 +910,10 @@ impl AStarModel {
                 shape,
                 color: [0.0, 0.0, 1.0, 0.5], // blue quad tree colliders
             }));
-        for item in frontier_vec.iter() {
+        for (i, item) in frontier_vec.iter().rev().enumerate() {
+            if i >= 500{
+                break; // limit the number of renderables to 500 for performance
+            }
             let BinaryHeapItem {
                 key: total_cost,
                 value: astar_node,
