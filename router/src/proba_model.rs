@@ -117,22 +117,23 @@ impl ProbaModel {
             let task_command_level = command_flag.get_level();
             // let render_model = proba_model.to_pcb_render_model(problem);
             if target_command_level <= task_command_level {
-            let render_model = proba_model.to_pcb_render_model(problem);
-            while !(display_injection.can_submit_render_model)() {
-                // wait until we can submit the render model
-            }            
-            (display_injection.submit_render_model)(render_model);
-            (display_injection.block_until_signal)();        
-        } else {
-            if (display_injection.can_submit_render_model)() {
-                // If we can submit the render model, do it
                 let render_model = proba_model.to_pcb_render_model(problem);
+                while !(display_injection.can_submit_render_model)() {
+                    // wait until we can submit the render model
+                }            
                 (display_injection.submit_render_model)(render_model);
+                (display_injection.block_until_signal)();        
+            } else {
+                if (display_injection.can_submit_render_model)() {
+                    // If we can submit the render model, do it
+                    let render_model = proba_model.to_pcb_render_model(problem);
+                    (display_injection.submit_render_model)(render_model);
+                }
             }
-        }
         };
+        println!("Before displaying proba model");
         display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
-
+        println!("After displaying proba model");
         // sample and then update posterior
         // to do: specify iteration number
         for j in 0..SAMPLE_ITERATIONS.load(Ordering::Relaxed) {
@@ -144,8 +145,9 @@ impl ProbaModel {
             for i in 0..10 {
                 // println!("Updating posterior for the {}th time", i + 1);
                 proba_model.update_posterior();
-                display_when_necessary(&proba_model, CommandFlag::AstarFrontierOrUpdatePosterior, display_injection);
+                display_when_necessary(&proba_model, CommandFlag::AstarInOut, display_injection);
             }
+            println!("Updated posterior");
             display_when_necessary(&proba_model, CommandFlag::UpdatePosteriorResult, display_injection);
         }
         Ok(proba_model)
@@ -841,9 +843,15 @@ impl ProbaModel {
                     for proba_trace in trace_map.values() {
                         let posterior = proba_trace.get_posterior_with_fallback();
                         let posterior = posterior.clamp(0.0, 1.0); // Ensure posterior is between 0 and 1
-                        let mut normalized_alpha = (posterior - min_probability) / (max_probability - min_probability);
+                        let mut normalized_alpha = if max_probability > min_probability
+                        {
+                            (posterior - min_probability) / (max_probability - min_probability)
+                        } else {
+                            1.0
+                        };
+                        assert!(!normalized_alpha.is_nan(), "Normalized alpha is NaN for posterior: {}", posterior);
                         normalized_alpha = normalized_alpha.clamp(0.0, 1.0); // Ensure alpha is between 0 and 1
-                        normalized_alpha = 0.5 + 0.5 * normalized_alpha; // Scale to [0.5, 1.0]
+                        normalized_alpha = 0.2 + 0.8 * normalized_alpha; // Scale to [0.5, 1.0]
                         let color = net_info.color.to_float4(normalized_alpha as f32);
                         let renderable_batches = proba_trace.trace_path.to_renderables(color);
                         trace_shape_renderables.extend(renderable_batches);

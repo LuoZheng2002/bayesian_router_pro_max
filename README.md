@@ -1,7 +1,14 @@
-# Tauri + Leptos
+# On Windows:
+At the root of the repository, double click on "installer.msi" to install and run the application.
+# On Other Platform:
+Download Rust and Tauri development toolchain, and at the repository root, run:
 
-This template should help get you started developing with Tauri and Leptos.
+cargo tauri dev
 
-## Recommended IDE Setup
+for running the development version.
 
-[VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+Or run
+
+cargo tauri build
+
+for building the released version.

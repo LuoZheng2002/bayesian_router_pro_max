@@ -102,7 +102,7 @@ pub fn pcb_render_model_to_shape_submissions(
             cgmath::Deg(0.0),
         )),
         scale: cgmath::Vector3::new(pcb_render_model.width, pcb_render_model.height, 1.0),
-        color: [0.0 / 255.0, 60.0 / 255.0, 0.0 / 255.0, 1.0],
+        color: [0.0 / 255.0, 60.0 / 255.0, 0.0 / 255.0, 1.0], // dark green color
     };
     let pcb_rect_batch = TransparentShapeBatch(vec![(rect_mesh.clone(), vec![pcb_rect_instance])]);
     transparent_submissions.push(pcb_rect_batch);
